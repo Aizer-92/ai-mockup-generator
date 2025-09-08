@@ -1,1 +1,1 @@
-web: streamlit run main.py --server.port $PORT --server.address 0.0.0.0
+web: sh -c 'PORT=${PORT:-8501} && export STREAMLIT_SERVER_PORT=$PORT && export STREAMLIT_SERVER_ADDRESS=0.0.0.0 && streamlit run main.py'
