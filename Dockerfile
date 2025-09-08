@@ -22,11 +22,14 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p uploads outputs cache
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose port (Railway will set PORT variable)
-EXPOSE $PORT
+EXPOSE 8501
 
 # Health check
-HEALTHCHECK CMD curl --fail http://localhost:$PORT/_stcore/health
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
 # Run the application
-CMD streamlit run main.py --server.port=$PORT --server.address=0.0.0.0
+CMD ["./start.sh"]
