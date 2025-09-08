@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  mockup-generator:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - AUTH_ENABLED=true
+      - AUTH_PASSWORD=admin123
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./cache:/app/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
