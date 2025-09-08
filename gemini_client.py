@@ -10,16 +10,20 @@ from PIL import Image
 import json
 import time
 from typing import List, Dict, Optional
-from config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_ANALYSIS_MODEL, MAX_IMAGE_SIZE, COMPRESSION_QUALITY
+from config import get_config, GEMINI_MODEL, GEMINI_ANALYSIS_MODEL, MAX_IMAGE_SIZE, COMPRESSION_QUALITY
 
 class GeminiClient:
     def __init__(self):
         """Инициализация клиента Gemini 2.5 Flash"""
-        if not GEMINI_API_KEY:
+        # Получаем актуальную конфигурацию
+        config = get_config()
+        api_key = config['GEMINI_API_KEY']
+        
+        if not api_key:
             raise ValueError("GEMINI_API_KEY не найден в переменных окружения")
         
         # Инициализация нового клиента
-        self.client = genai.Client(api_key=GEMINI_API_KEY)
+        self.client = genai.Client(api_key=api_key)
         
     def compress_image(self, image: Image.Image) -> Image.Image:
         """Сжатие изображения для экономии токенов"""

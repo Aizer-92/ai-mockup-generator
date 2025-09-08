@@ -5,10 +5,12 @@
 import streamlit as st
 import hashlib
 import os
+from config import get_config
 
-# Конфигурация аутентификации
-AUTH_ENABLED = os.getenv('AUTH_ENABLED', 'true').lower() == 'true'
-AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', 'admin123')  # Пароль по умолчанию
+# Получаем конфигурацию аутентификации
+config = get_config()
+AUTH_ENABLED = config['AUTH_ENABLED']
+AUTH_PASSWORD = config['AUTH_PASSWORD']
 AUTH_SESSION_KEY = 'authenticated'
 
 def hash_password(password: str) -> str:

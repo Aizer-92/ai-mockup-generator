@@ -7,24 +7,33 @@ from dotenv import load_dotenv
 # Загружаем .env файл для локальной разработки
 load_dotenv()
 
-# Пытаемся импортировать streamlit для работы с secrets
-try:
-    import streamlit as st
-    # Если мы в Streamlit Cloud, используем secrets
-    if hasattr(st, 'secrets'):
-        GEMINI_API_KEY = st.secrets.get('GEMINI_API_KEY', os.getenv('GEMINI_API_KEY'))
-        AUTH_ENABLED = st.secrets.get('AUTH_ENABLED', os.getenv('AUTH_ENABLED', 'true')).lower() == 'true'
-        AUTH_PASSWORD = st.secrets.get('AUTH_PASSWORD', os.getenv('AUTH_PASSWORD', 'admin123'))
-    else:
-        # Локальная разработка
-        GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-        AUTH_ENABLED = os.getenv('AUTH_ENABLED', 'true').lower() == 'true'
-        AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', 'admin123')
-except ImportError:
-    # Если streamlit не установлен (например, при импорте config.py вне Streamlit)
-    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-    AUTH_ENABLED = os.getenv('AUTH_ENABLED', 'true').lower() == 'true'
-    AUTH_PASSWORD = os.getenv('AUTH_PASSWORD', 'admin123')
+# Функция для получения конфигурации
+def get_config():
+    """Получает конфигурацию из secrets или переменных окружения"""
+    try:
+        import streamlit as st
+        # Если мы в Streamlit Cloud, используем secrets
+        if hasattr(st, 'secrets') and st.secrets:
+            return {
+                'GEMINI_API_KEY': st.secrets.get('GEMINI_API_KEY', os.getenv('GEMINI_API_KEY')),
+                'AUTH_ENABLED': st.secrets.get('AUTH_ENABLED', os.getenv('AUTH_ENABLED', 'true')).lower() == 'true',
+                'AUTH_PASSWORD': st.secrets.get('AUTH_PASSWORD', os.getenv('AUTH_PASSWORD', 'admin123'))
+            }
+    except:
+        pass
+    
+    # Локальная разработка или fallback
+    return {
+        'GEMINI_API_KEY': os.getenv('GEMINI_API_KEY'),
+        'AUTH_ENABLED': os.getenv('AUTH_ENABLED', 'true').lower() == 'true',
+        'AUTH_PASSWORD': os.getenv('AUTH_PASSWORD', 'admin123')
+    }
+
+# Получаем конфигурацию
+config = get_config()
+GEMINI_API_KEY = config['GEMINI_API_KEY']
+AUTH_ENABLED = config['AUTH_ENABLED']
+AUTH_PASSWORD = config['AUTH_PASSWORD']
 GEMINI_MODEL = 'gemini-2.5-flash-image-preview'  # Официальная модель для генерации изображений
 GEMINI_ANALYSIS_MODEL = 'gemini-2.0-flash-exp'  # Современная модель для анализа коллекций
 

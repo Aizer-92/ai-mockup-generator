@@ -8,10 +8,12 @@ from PIL import Image
 import time
 from typing import Optional
 
-from mockup_generator import MockupGenerator
-from batch_processor import BatchProcessor
-from config import STREAMLIT_PORT, STREAMLIT_HOST
+# Импортируем конфигурацию после инициализации Streamlit
+from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST
 from auth import is_authenticated, login_form, logout_button, require_auth
+
+# Получаем актуальную конфигурацию
+config = get_config()
 
 # Настройка страницы
 st.set_page_config(
