@@ -11,6 +11,8 @@ from typing import Optional
 # Импортируем конфигурацию после инициализации Streamlit
 from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST
 from auth import is_authenticated, login_form, logout_button, require_auth
+from mockup_generator import MockupGenerator
+from batch_processor import BatchProcessor
 
 # Получаем актуальную конфигурацию
 config = get_config()
