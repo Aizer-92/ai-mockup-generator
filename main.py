@@ -249,19 +249,21 @@ def single_generation_interface():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("**📦 Товар**")
+        st.markdown("**Товар**")
+        with st.container():
+            st.markdown("---")
         
         # Стиль мокапа
         mockup_style = st.selectbox(
             "Стиль",
-            ["modern", "vintage", "minimal", "luxury", "corporate"],
+            ["Современный", "Премиальный", "Минималистичный", "В динамике"],
             help="Стиль мокапа"
         )
         
         # Цвет товара
-        product_color = st.selectbox(
-            "Цвет",
-            ["как на фото", "белый", "черный", "серый", "красный", "синий", "зеленый", "желтый", "розовый", "фиолетовый", "коричневый", "бежевый", "натуральный"],
+        product_color = st.text_input(
+            "Цвет товара",
+            value="как на фото",
             help="Цвет товара"
         )
         
@@ -273,14 +275,28 @@ def single_generation_interface():
         )
     
     with col2:
-        st.markdown("**🏷️ Логотип**")
+        st.markdown("**Логотип**")
+        with st.container():
+            st.markdown("---")
         
         # Тип нанесения логотипа
+        logo_application_options = ["вышивка", "печать", "ткачество", "тиснение", "сублимация", "силикон", "термоперенос", "шелкография", "цифровая печать", "лазерная гравировка", "патч"]
         logo_application = st.selectbox(
             "Тип нанесения",
-            ["вышивка", "печать", "ткачество", "тиснение", "сублимация", "винил", "термоперенос", "шелкография", "цифровая печать", "лазерная гравировка"],
+            logo_application_options,
             help="Тип нанесения логотипа"
         )
+        
+        # Поле для ввода своего типа нанесения
+        custom_application = st.text_input(
+            "Или введите свой тип нанесения",
+            placeholder="Например: аппликация, гравировка",
+            help="Введите свой тип нанесения, если его нет в списке"
+        )
+        
+        # Используем кастомное значение если оно введено
+        if custom_application.strip():
+            logo_application = custom_application.strip()
         
         # Расположение логотипа
         logo_position = st.selectbox(
@@ -299,24 +315,25 @@ def single_generation_interface():
         # Цвет логотипа
         logo_color = st.selectbox(
             "Цвет",
-            ["как на фото", "белый", "черный", "серый", "красный", "синий", "зеленый", "желтый", "розовый", "фиолетовый", "коричневый", "золотой", "серебряный"],
+            ["как на фото", "черный", "белый"],
             help="Цвет логотипа"
         )
     
     with col3:
-        st.markdown("**🔧 Дополнительно**")
+        st.markdown("**Дополнительно**")
+        with st.container():
+            st.markdown("---")
         
         # Дополнительные опции для промпта
         add_tag = st.checkbox("Добавить бирку", value=False, help="Добавить этикетку или бирку с логотипом к товару")
         add_person = st.checkbox("Добавить человека", value=False, help="Показать товар в использовании человеком")
         
         # Дополнительные способы нанесения
-        st.markdown("**🏷️ Доп. нанесение**")
+        st.markdown("**Доп. нанесение**")
         add_badge = st.checkbox("Добавить шильдик", value=False, help="Добавить металлический шильдик с логотипом")
-        add_pattern = st.checkbox("Запечатать паттерном", value=False, help="Добавить повторяющийся паттерн с логотипом")
         
         # Поле для произвольного текста
-        st.markdown("**✏️ Детали**")
+        st.markdown("**Детали**")
         custom_prompt = st.text_area(
             "Особые требования",
             placeholder="Например: 'логотип в правом углу', 'добавить тени'",
@@ -332,7 +349,7 @@ def single_generation_interface():
         col1, col2, col3 = st.columns([1, 2, 1])
         
         with col2:
-            if st.button("🚀 Сгенерировать мокапы", type="primary", use_container_width=True):
+            if st.button("Сгенерировать мокапы", type="primary", use_container_width=True):
                 with st.spinner("Генерация мокапов..."):
                     try:
                         generator = get_mockup_generator()
@@ -344,15 +361,25 @@ def single_generation_interface():
                             "ткачество": "woven",
                             "тиснение": "embossed",
                             "сублимация": "sublimation",
-                            "винил": "vinyl",
+                            "силикон": "silicone",
                             "термоперенос": "heat_transfer",
                             "шелкография": "screen_print",
                             "цифровая печать": "digital_print",
-                            "лазерная гравировка": "laser_engraving"
+                            "лазерная гравировка": "laser_engraving",
+                            "патч": "patch"
+                        }
+                        
+                        # Словарь перевода стилей
+                        style_translation = {
+                            "Современный": "modern",
+                            "Премиальный": "luxury",
+                            "Минималистичный": "minimal",
+                            "В динамике": "dynamic"
                         }
                         
                         # Переводим русское название в английский ключ
                         logo_application_key = logo_application_translation.get(logo_application, "embroidery")
+                        mockup_style_key = style_translation.get(mockup_style, "modern")
                         
                         # Отладочная информация
                         print(f"Mockup style from UI: '{mockup_style}'")
@@ -379,11 +406,9 @@ def single_generation_interface():
                             extended_prompt += " Показать товар в использовании человеком, человек должен держать или использовать товар."
                         if add_badge:
                             extended_prompt += " Добавить металлический шильдик с логотипом на товар."
-                        if add_pattern:
-                            if "pattern_image" in st.session_state:
-                                extended_prompt += " Создать повторяющийся паттерн с загруженным паттерном по всей поверхности товара."
-                            else:
-                                extended_prompt += " Создать повторяющийся паттерн с логотипом по всей поверхности товара."
+                        # Автоматически определяем использование паттерна по загруженному изображению
+                        if "pattern_image" in st.session_state:
+                            extended_prompt += " Создать повторяющийся паттерн с загруженным паттерном по всей поверхности товара."
                         
                         # Показываем пользователю, что будет использовано
                         st.info(f"📦 Товар: {mockup_style} стиль, {product_color} цвет, {product_angle} ракурс")
@@ -397,11 +422,9 @@ def single_generation_interface():
                             additional_options.append("человек")
                         if add_badge:
                             additional_options.append("шильдик")
-                        if add_pattern:
-                            if "pattern_image" in st.session_state:
-                                additional_options.append("паттерн (загружен)")
-                            else:
-                                additional_options.append("паттерн (логотип)")
+                        # Автоматически добавляем паттерн если загружен
+                        if "pattern_image" in st.session_state:
+                            additional_options.append("паттерн")
                         
                         if additional_options:
                             st.info(f"🔧 Дополнительно: {', '.join(additional_options)}")
@@ -424,11 +447,10 @@ def single_generation_interface():
                             st.write(f"- Добавить бирку: `{add_tag if 'add_tag' in locals() else False}`")
                             st.write(f"- Добавить человека: `{add_person if 'add_person' in locals() else False}`")
                             st.write(f"- Добавить шильдик: `{add_badge if 'add_badge' in locals() else False}`")
-                            st.write(f"- Запечатать паттерном: `{add_pattern if 'add_pattern' in locals() else False}`")
-                            if add_pattern and "pattern_image" in st.session_state:
+                            if "pattern_image" in st.session_state:
                                 st.write(f"- Паттерн загружен: `Да`")
-                            elif add_pattern:
-                                st.write(f"- Паттерн загружен: `Нет (используется логотип)`")
+                            else:
+                                st.write(f"- Паттерн загружен: `Нет`")
                             st.write("**📝 Промпт:**")
                             st.write(f"- Исходные требования: `{custom_prompt}`")
                             st.write(f"- Расширенный промпт: `{extended_prompt}`")
@@ -546,7 +568,7 @@ Generate the mockup image."""
                         result = generator.generate_mockups(
                             product_image=product_image,
                             logo_image=logo_image,
-                            style=mockup_style,
+                            style=mockup_style_key,
                             logo_application=logo_application_key,
                             custom_prompt=extended_prompt,
                             product_color=product_color,
@@ -602,7 +624,7 @@ Generate the mockup image."""
     if "product_image" in st.session_state or "logo_image" in st.session_state or "pattern_image" in st.session_state:
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("🗑️ Очистить изображения", type="secondary", use_container_width=True):
+            if st.button("Очистить изображения", type="secondary", use_container_width=True):
                 # Очищаем изображения из сессии
                 if "product_image" in st.session_state:
                     del st.session_state.product_image
@@ -613,7 +635,7 @@ Generate the mockup image."""
                 st.rerun()
             
             # Кнопка очистки кэша (для разработки)
-            if st.button("🔄 Обновить кэш", type="secondary", use_container_width=True, help="Очистить кэш модулей (используйте при обновлении кода)"):
+            if st.button("Обновить кэш", type="secondary", use_container_width=True, help="Очистить кэш модулей (используйте при обновлении кода)"):
                 clear_batch_processor_cache()
                 st.success("Кэш очищен! Перезагрузите страницу.")
     
@@ -896,7 +918,7 @@ def batch_processing_interface():
             
             collection_style = st.selectbox(
                 "Стиль коллекции",
-                ["modern", "vintage", "minimal", "luxury", "corporate"],
+                ["Современный", "Премиальный", "Минималистичный", "В динамике"],
                 help="Единый стиль для всей коллекции"
             )
         

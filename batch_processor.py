@@ -202,13 +202,23 @@ class BatchProcessor:
             for i, name in enumerate(product_names):
                 products_info += f"- Товар {i+1}: {name}\n"
         
+        # Словарь перевода стилей
+        style_translation = {
+            "Современный": "modern",
+            "Премиальный": "luxury", 
+            "Минималистичный": "minimal",
+            "В динамике": "dynamic"
+        }
+        
+        collection_style_key = style_translation.get(collection_style, "modern")
+        
         return f"""🚨 КРИТИЧЕСКИ ВАЖНО: Анализируй ТОЛЬКО ОСНОВНОЙ ТОВАР на каждом изображении! 🚨
 
 Проанализируй коллекцию из {num_products} товаров и создай индивидуальные промпты для каждого.
 
 НАСТРОЙКИ КОЛЛЕКЦИИ:
 - Цвет товаров: {product_color}
-- Стиль коллекции: {collection_style}
+- Стиль коллекции: {collection_style} ({collection_style_key})
 - Тема коллекции: {collection_theme if collection_theme else "не указана"}
 {products_info}
 
@@ -260,11 +270,21 @@ class BatchProcessor:
         sizes = ["маленький", "средний", "большой"]
         angles = ["как на фото", "спереди", "в полуоборот", "сверху", "сбоку"]
         
+        # Словарь перевода стилей для fallback
+        style_translation = {
+            "Современный": "modern",
+            "Премиальный": "luxury", 
+            "Минималистичный": "minimal",
+            "В динамике": "dynamic"
+        }
+        
+        collection_style_key = style_translation.get(collection_style, "modern")
+        
         individual_prompts = []
         for i, img in enumerate(product_images):
             product_name = product_names[i] if product_names and i < len(product_names) else f"Товар {i+1}"
             prompt_data = {
-                "style": collection_style,  # Единый стиль для всех
+                "style": collection_style_key,  # Единый стиль для всех
                 "logo_application": applications[i % len(applications)],
                 "logo_position": positions[i % len(positions)],
                 "logo_size": sizes[i % len(sizes)],

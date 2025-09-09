@@ -94,7 +94,8 @@ class GeminiClient:
                 "woven": "woven into the fabric with integrated texture, natural appearance, and seamless blending",
                 "embossed": "embossed with raised relief effect, realistic depth, and fabric-appropriate texture",
                 "sublimation": "sublimated with vibrant colors, smooth finish, and permanent integration into fabric",
-                "vinyl": "vinyl heat transfer with glossy finish, crisp edges, and durable application",
+                "silicone": "silicone application with soft, flexible texture, raised surface, and durable finish",
+                "patch": "patch application with raised edges, fabric backing, and sewn-on appearance",
                 "heat_transfer": "heat transfer with smooth application, vibrant colors, and professional finish",
                 "screen_print": "screen printed with thick ink, matte finish, and durable application",
                 "digital_print": "digitally printed with high resolution, smooth finish, and precise details",
@@ -106,7 +107,8 @@ class GeminiClient:
                 "woven": "woven into the textile with integrated texture, natural appearance, and seamless blending",
                 "embossed": "embossed with raised relief effect, realistic depth, and textile-appropriate texture",
                 "sublimation": "sublimated with vibrant colors, smooth finish, and permanent integration into textile",
-                "vinyl": "vinyl heat transfer with glossy finish, crisp edges, and durable application",
+                "silicone": "silicone application with soft, flexible texture, raised surface, and durable finish",
+                "patch": "patch application with raised edges, fabric backing, and sewn-on appearance",
                 "heat_transfer": "heat transfer with smooth application, vibrant colors, and professional finish",
                 "screen_print": "screen printed with thick ink, matte finish, and durable application",
                 "digital_print": "digitally printed with high resolution, smooth finish, and precise details",
@@ -118,7 +120,8 @@ class GeminiClient:
                 "woven": "woven into the leather with integrated texture, natural appearance, and seamless blending",
                 "embossed": "embossed with raised relief effect, realistic depth, and leather-appropriate texture",
                 "sublimation": "sublimated with vibrant colors, smooth finish, and permanent integration into leather",
-                "vinyl": "vinyl heat transfer with glossy finish, crisp edges, and durable application",
+                "silicone": "silicone application with soft, flexible texture, raised surface, and durable finish",
+                "patch": "patch application with raised edges, fabric backing, and sewn-on appearance",
                 "heat_transfer": "heat transfer with smooth application, vibrant colors, and professional finish",
                 "screen_print": "screen printed with thick ink, matte finish, and durable application",
                 "digital_print": "digitally printed with high resolution, smooth finish, and precise details",
@@ -128,10 +131,9 @@ class GeminiClient:
         
         style_descriptions = {
             "modern": "Modern clean lines, minimalist design, contemporary colors, sleek presentation with bright, clean lighting and sharp contrasts",
-            "vintage": "Classic vintage elements, warm tones, traditional styling, nostalgic appeal with soft, warm lighting and muted colors",
-            "minimal": "Simple design, neutral colors, clean aesthetics, uncluttered presentation with soft, even lighting and subtle shadows",
             "luxury": "Premium materials, elegant presentation, sophisticated look, high-end appeal with dramatic lighting and rich textures",
-            "corporate": "Professional business style, corporate colors, clean presentation, business-appropriate with professional studio lighting"
+            "minimal": "Simple design, neutral colors, clean aesthetics, uncluttered presentation with soft, even lighting and subtle shadows",
+            "dynamic": "Energetic, vibrant design with bold colors, dynamic composition, action-oriented presentation with dramatic lighting and movement"
         }
         
         # Получаем эффект для логотипа с детальной отладкой
