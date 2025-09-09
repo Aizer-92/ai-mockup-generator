@@ -136,12 +136,14 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("Одиночная генерация", key="single_mode", use_container_width=True, type="primary" if st.session_state.get('mode', 'single') == 'single' else "secondary"):
+        single_type = "primary" if st.session_state.get('mode', 'single') == 'single' else "secondary"
+        if st.button("Одиночная генерация", key="single_mode", use_container_width=True, type=single_type):
             st.session_state.mode = 'single'
             st.rerun()
     
     with col2:
-        if st.button("Пакетная обработка", key="batch_mode", use_container_width=True, type="primary" if st.session_state.get('mode', 'single') == 'batch' else "secondary"):
+        batch_type = "primary" if st.session_state.get('mode', 'single') == 'batch' else "secondary"
+        if st.button("Пакетная обработка", key="batch_mode", use_container_width=True, type=batch_type):
             st.session_state.mode = 'batch'
             st.rerun()
     
@@ -415,7 +417,7 @@ def single_generation_interface():
                         # Переводим русское название в английский ключ
                         # Если используется кастомное значение, используем его как есть
                         if custom_application.strip():
-                            logo_application_key = logo_application  # Кастомное значение остается как есть
+                            logo_application_key = custom_application.strip()  # Кастомное значение остается как есть
                         else:
                             logo_application_key = logo_application_translation.get(logo_application, "embroidery")
                         mockup_style_key = style_translation.get(mockup_style, "modern")
@@ -424,7 +426,7 @@ def single_generation_interface():
                         print(f"Mockup style from UI: '{mockup_style}'")
                         print(f"Product color from UI: '{product_color}'")
                         print(f"Product angle from UI: '{product_angle}'")
-                        print(f"Logo application from UI: '{logo_application}' -> '{logo_application_key}'")
+                        print(f"Logo application from UI: '{custom_application.strip() if custom_application.strip() else logo_application}' -> '{logo_application_key}'")
                         print(f"Logo position from UI: '{logo_position}'")
                         print(f"Logo size from UI: '{logo_size}'")
                         print(f"Logo color from UI: '{logo_color}'")
@@ -478,7 +480,7 @@ def single_generation_interface():
                             st.write(f"- Цвет: `{product_color}`")
                             st.write(f"- Ракурс: `{product_angle}`")
                             st.write("**🏷️ Логотип:**")
-                            st.write(f"- Тип нанесения: `{logo_application}` -> `{logo_application_key}`")
+                            st.write(f"- Тип нанесения: `{custom_application.strip() if custom_application.strip() else logo_application}` -> `{logo_application_key}`")
                             st.write(f"- Расположение: `{logo_position}`")
                             st.write(f"- Размер: `{logo_size}`")
                             st.write(f"- Цвет: `{logo_color}`")

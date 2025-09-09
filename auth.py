@@ -5,6 +5,7 @@
 import streamlit as st
 import hashlib
 import os
+import time
 from config import get_config
 
 # Получаем конфигурацию аутентификации
@@ -35,7 +36,6 @@ def is_authenticated() -> bool:
     if st.session_state.get(AUTH_SESSION_KEY, False):
         # Проверяем время последней активности (24 часа)
         last_activity = st.session_state.get('last_activity', 0)
-        import time
         current_time = time.time()
         
         # Если прошло больше 24 часов, сбрасываем аутентификацию
