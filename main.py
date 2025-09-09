@@ -56,7 +56,7 @@ st.markdown("""
         font-size: 0.9rem;
     }
     
-    /* Фоновые блоки для настроек */
+    /* Фоновые блоки для настроек - серый стиль */
     .settings-block {
         background: #f8f9fa;
         padding: 1.5rem;
@@ -66,34 +66,32 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* Блок товара */
-    .product-block {
-        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-        border-left: 4px solid #2196f3;
+    /* Убираем цветные градиенты, делаем все блоки серыми */
+    .product-block, .logo-block, .additional-block {
+        background: #f8f9fa !important;
+        border-left: 4px solid #6c757d !important;
     }
     
-    /* Блок логотипа */
-    .logo-block {
-        background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%);
-        border-left: 4px solid #4caf50;
-    }
-    
-    /* Блок дополнительно */
-    .additional-block {
-        background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%);
-        border-left: 4px solid #ff9800;
-    }
-    
-    /* Улучшенные кнопки режима */
-    .mode-button {
-        border-radius: 8px;
+    /* Мягкие кнопки режима */
+    .stButton > button[kind="primary"] {
+        background-color: #f8f9fa !important;
+        color: #495057 !important;
+        border: 1px solid #dee2e6 !important;
         font-weight: 500;
-        transition: all 0.3s ease;
     }
     
-    .mode-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    .stButton > button[kind="secondary"] {
+        background-color: #ffffff !important;
+        color: #6c757d !important;
+        border: 1px solid #dee2e6 !important;
+        font-weight: 400;
+    }
+    
+    .stButton > button:hover {
+        background-color: #e9ecef !important;
+        border-color: #adb5bd !important;
+        transform: none !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     }
 </style>
 """, unsafe_allow_html=True)
