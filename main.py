@@ -56,58 +56,42 @@ st.markdown("""
         font-size: 0.9rem;
     }
     
-    /* Стили для Streamlit контейнеров */
+    /* Дополнительные стили для контейнеров блоков */
     .stContainer {
-        background: #f8f9fa !important;
+        background: var(--secondary-background-color) !important;
         padding: 1rem !important;
-        border-radius: 8px !important;
+        border-radius: var(--base-radius) !important;
         margin: 0.5rem 0 !important;
+        border: 1px solid var(--border-color) !important;
     }
     
-    /* Стили для колонок с контейнерами */
-    .stColumn .stContainer {
-        background: #f8f9fa !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        margin: 0.5rem 0 !important;
-    }
-    
-    /* Дополнительные селекторы для гарантированного применения */
-    div[data-testid="column"] .stContainer,
-    .main .block-container .stContainer {
-        background: #f8f9fa !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        margin: 0.5rem 0 !important;
-    }
-    
-    /* Стили для заголовков блоков */
-    .settings-block h3, .stContainer h3 {
-        color: #495057 !important;
-        margin-bottom: 1.5rem !important;
+    /* Стили для заголовков в контейнерах */
+    .stContainer h3 {
+        color: var(--text-color) !important;
+        margin-bottom: 1rem !important;
         font-weight: 600 !important;
-        border-bottom: 2px solid #e9ecef !important;
-        padding-bottom: 0.5rem !important;
     }
+    
     
     /* Мягкие кнопки режима */
     .stButton > button[kind="primary"] {
-        background-color: #f8f9fa !important;
-        color: #495057 !important;
-        border: 1px solid #dee2e6 !important;
+        background-color: var(--secondary-background-color) !important;
+        color: var(--text-color) !important;
+        border: 1px solid var(--border-color) !important;
         font-weight: 500;
     }
     
     .stButton > button[kind="secondary"] {
-        background-color: #ffffff !important;
-        color: #6c757d !important;
-        border: 1px solid #dee2e6 !important;
+        background-color: var(--background-color) !important;
+        color: var(--primary-color) !important;
+        border: 1px solid var(--border-color) !important;
         font-weight: 400;
     }
     
     .stButton > button:hover {
-        background-color: #e9ecef !important;
-        border-color: #adb5bd !important;
+        background-color: var(--primary-color) !important;
+        color: white !important;
+        border-color: var(--primary-color) !important;
         transform: none !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     }
