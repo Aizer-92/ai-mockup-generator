@@ -41,10 +41,14 @@ def is_authenticated() -> bool:
         # Если прошло больше 24 часов, сбрасываем аутентификацию
         if current_time - last_activity > 24 * 60 * 60:
             st.session_state[AUTH_SESSION_KEY] = False
+            if 'last_activity' in st.session_state:
+                del st.session_state['last_activity']
             return False
         
-        # Обновляем время последней активности
-        st.session_state['last_activity'] = current_time
+        # Обновляем время последней активности только раз в 5 минут
+        if current_time - last_activity > 5 * 60:  # 5 минут
+            st.session_state['last_activity'] = current_time
+        
         return True
     
     return False
