@@ -56,7 +56,8 @@ class GeminiClient:
                        mockup_style: str = "modern", logo_application: str = "embroidery", 
                        custom_prompt: str = "", product_color: str = "белый", 
                        product_angle: str = "спереди", logo_position: str = "центр",
-                       logo_size: str = "средний", logo_color: str = "как на фото") -> List[Dict]:
+                       logo_size: str = "средний", logo_color: str = "как на фото",
+                       pattern_image: Optional[Image.Image] = None) -> List[Dict]:
         """
         Генерация мокапа с логотипом используя Gemini 2.5 Flash
         
@@ -71,6 +72,7 @@ class GeminiClient:
             logo_position: Расположение логотипа
             logo_size: Размер логотипа
             logo_color: Цвет логотипа
+            pattern_image: Паттерн для использования (опционально)
         
         Returns:
             Список сгенерированных мокапов
@@ -79,6 +81,7 @@ class GeminiClient:
         # Подготовка изображений
         processed_product = self.compress_image(product_image)
         processed_logo = self.compress_image(logo_image)
+        processed_pattern = self.compress_image(pattern_image) if pattern_image else None
         
         # Определение типа продукта
         product_type = self.detect_product_type(processed_product)
@@ -208,6 +211,8 @@ Logo must follow product curves and texture naturally.
 
 {f"SPECIAL REQUIREMENTS: {custom_prompt}" if custom_prompt.strip() else ""}
 
+{f"PATTERN APPLICATION: Use the uploaded pattern image to create a repeating pattern across the product surface. The pattern should be seamlessly integrated with the product design." if processed_pattern else ""}
+
 FINAL REQUIREMENTS:
 - Keep the original product exactly as shown in the image
 - Only add the logo to the existing product
@@ -241,9 +246,13 @@ Generate the mockup image."""
         
         try:
             # Используем новый API Gemini 2.5 Flash
+            contents = [prompt, processed_product, processed_logo]
+            if processed_pattern:
+                contents.append(processed_pattern)
+            
             response = self.client.models.generate_content(
                 model=GEMINI_MODEL,
-                contents=[prompt, processed_product, processed_logo],
+                contents=contents,
             )
             
             # Обработка ответа
@@ -303,7 +312,8 @@ Generate the mockup image."""
             return [{"fallback_needed": True, "error": str(e)}]
     
     def generate_mockup_with_analysis(self, product_image: Image.Image, logo_image: Image.Image, 
-                                    analysis_recommendations: Dict, custom_prompt: str = "") -> List[Dict]:
+                                    analysis_recommendations: Dict, custom_prompt: str = "", 
+                                    pattern_image: Optional[Image.Image] = None) -> List[Dict]:
         """
         Генерация мокапа с рекомендациями из анализа коллекции
         
@@ -312,6 +322,7 @@ Generate the mockup image."""
             logo_image: Логотип клиента
             analysis_recommendations: Рекомендации из анализа (style, logo_application, logo_position, etc.)
             custom_prompt: Дополнительные требования
+            pattern_image: Паттерн для использования (опционально)
         
         Returns:
             Список с результатами генерации
@@ -334,7 +345,7 @@ Generate the mockup image."""
         return self.generate_mockup(
             product_image, logo_image, mockup_style, logo_application, 
             combined_custom, product_color, product_angle, logo_position, 
-            logo_size, logo_color
+            logo_size, logo_color, pattern_image
         )
     
     def _parse_response(self, response) -> List[Dict]:

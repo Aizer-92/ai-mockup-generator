@@ -33,7 +33,8 @@ class MockupGenerator:
                         product_angle: str = "спереди",
                         logo_position: str = "центр",
                         logo_size: str = "средний",
-                        logo_color: str = "как на фото") -> Dict:
+                        logo_color: str = "как на фото",
+                        pattern_image: Optional[Image.Image] = None) -> Dict:
         """
         Генерация мокапов с логотипом
         
@@ -48,6 +49,7 @@ class MockupGenerator:
             logo_position: Расположение логотипа
             logo_size: Размер логотипа
             logo_color: Цвет логотипа
+            pattern_image: Паттерн для использования (опционально)
         
         Returns:
             Словарь с результатами генерации
@@ -86,11 +88,12 @@ class MockupGenerator:
         # Обработка изображений
         processed_product = self.image_processor.optimize_for_api(product_image)
         processed_logo = self.image_processor.optimize_for_api(logo_image)
+        processed_pattern = self.image_processor.optimize_for_api(pattern_image) if pattern_image else None
         
         # Генерация через Gemini API
         try:
             gemini_results = self.gemini_client.generate_mockup(
-                processed_product, processed_logo, style, logo_application, custom_prompt, product_color, product_angle, logo_position, logo_size, logo_color
+                processed_product, processed_logo, style, logo_application, custom_prompt, product_color, product_angle, logo_position, logo_size, logo_color, processed_pattern
             )
             
             # Проверка, есть ли изображения от Gemini

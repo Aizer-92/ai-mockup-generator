@@ -152,7 +152,7 @@ def single_generation_interface():
     
     # Компактная область с загрузкой изображений
     st.subheader("📤 Загрузка изображений")
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
         # Загрузка изображения товара
@@ -211,6 +211,36 @@ def single_generation_interface():
             preview_logo.thumbnail(preview_size, Image.LANCZOS)
             st.image(preview_logo, caption="Логотип", width=80)
             st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+    
+    with col3:
+        # Загрузка паттерна
+        pattern_file = st.file_uploader(
+            "Паттерн (опционально)",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="pattern",
+            help="Загрузите паттерн для использования на товаре"
+        )
+        
+        if pattern_file:
+            pattern_image = Image.open(pattern_file)
+            # Сохраняем в сессии
+            st.session_state.pattern_image = pattern_image
+            # Очень компактное превью
+            preview_size = (80, 80)
+            preview_pattern = pattern_image.copy()
+            preview_pattern.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_pattern, caption="Паттерн", width=80)
+            
+            # Информация об изображении
+            st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
+        elif "pattern_image" in st.session_state:
+            # Показываем сохраненное изображение
+            pattern_image = st.session_state.pattern_image
+            preview_size = (80, 80)
+            preview_pattern = pattern_image.copy()
+            preview_pattern.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_pattern, caption="Паттерн", width=80)
+            st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
     
     # Компактные настройки
     st.markdown("---")
@@ -339,6 +369,10 @@ def single_generation_interface():
                         # Формируем расширенный промпт с дополнительными опциями
                         extended_prompt = custom_prompt
                         
+                        # Добавляем логику для удаления фоновых объектов при смене ракурса
+                        if product_angle != "как на фото":
+                            extended_prompt += " Удалить все фоновые объекты, людей, мебель и окружение. Оставить только основной товар/товары на чистом фоне."
+                        
                         if add_tag:
                             extended_prompt += " Добавить этикетку или бирку с логотипом к товару. Этикетка должна содержать логотип, который был загружен пользователем."
                         if add_person:
@@ -346,7 +380,10 @@ def single_generation_interface():
                         if add_badge:
                             extended_prompt += " Добавить металлический шильдик с логотипом на товар."
                         if add_pattern:
-                            extended_prompt += " Создать повторяющийся паттерн с логотипом по всей поверхности товара."
+                            if "pattern_image" in st.session_state:
+                                extended_prompt += " Создать повторяющийся паттерн с загруженным паттерном по всей поверхности товара."
+                            else:
+                                extended_prompt += " Создать повторяющийся паттерн с логотипом по всей поверхности товара."
                         
                         # Показываем пользователю, что будет использовано
                         st.info(f"📦 Товар: {mockup_style} стиль, {product_color} цвет, {product_angle} ракурс")
@@ -361,7 +398,10 @@ def single_generation_interface():
                         if add_badge:
                             additional_options.append("шильдик")
                         if add_pattern:
-                            additional_options.append("паттерн")
+                            if "pattern_image" in st.session_state:
+                                additional_options.append("паттерн (загружен)")
+                            else:
+                                additional_options.append("паттерн (логотип)")
                         
                         if additional_options:
                             st.info(f"🔧 Дополнительно: {', '.join(additional_options)}")
@@ -385,6 +425,10 @@ def single_generation_interface():
                             st.write(f"- Добавить человека: `{add_person if 'add_person' in locals() else False}`")
                             st.write(f"- Добавить шильдик: `{add_badge if 'add_badge' in locals() else False}`")
                             st.write(f"- Запечатать паттерном: `{add_pattern if 'add_pattern' in locals() else False}`")
+                            if add_pattern and "pattern_image" in st.session_state:
+                                st.write(f"- Паттерн загружен: `Да`")
+                            elif add_pattern:
+                                st.write(f"- Паттерн загружен: `Нет (используется логотип)`")
                             st.write("**📝 Промпт:**")
                             st.write(f"- Исходные требования: `{custom_prompt}`")
                             st.write(f"- Расширенный промпт: `{extended_prompt}`")
@@ -496,6 +540,7 @@ Generate the mockup image."""
                         # Получаем изображения из сессии
                         product_image = st.session_state.product_image
                         logo_image = st.session_state.logo_image
+                        pattern_image = st.session_state.get("pattern_image", None)
                         
                         # Генерация мокапов
                         result = generator.generate_mockups(
@@ -508,7 +553,8 @@ Generate the mockup image."""
                             product_angle=product_angle,
                             logo_position=logo_position,
                             logo_size=logo_size,
-                            logo_color=logo_color
+                            logo_color=logo_color,
+                            pattern_image=pattern_image
                         )
                         
                         if result["status"] == "success":
@@ -553,7 +599,7 @@ Generate the mockup image."""
         st.info("👆 Загрузите изображение товара и логотип для начала генерации")
     
     # Кнопка очистки изображений (если есть хотя бы одно изображение)
-    if "product_image" in st.session_state or "logo_image" in st.session_state:
+    if "product_image" in st.session_state or "logo_image" in st.session_state or "pattern_image" in st.session_state:
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
             if st.button("🗑️ Очистить изображения", type="secondary", use_container_width=True):
@@ -562,6 +608,8 @@ Generate the mockup image."""
                     del st.session_state.product_image
                 if "logo_image" in st.session_state:
                     del st.session_state.logo_image
+                if "pattern_image" in st.session_state:
+                    del st.session_state.pattern_image
                 st.rerun()
             
             # Кнопка очистки кэша (для разработки)
@@ -697,8 +745,9 @@ def batch_processing_interface():
                 st.write(f"📝 Промпт: {prompt_data.get('style', 'N/A')} стиль, {prompt_data.get('logo_application', 'N/A')} нанесение")
                 
                 # Генерируем новый мокап с теми же параметрами
+                pattern_image = st.session_state.get("batch_pattern_image", None)
                 new_result = generator.gemini_client.generate_mockup_with_analysis(
-                    original_image, st.session_state.batch_logo_image, prompt_data, ""
+                    original_image, st.session_state.batch_logo_image, prompt_data, "", pattern_image
                 )
                 
                 if new_result and len(new_result) > 0:
@@ -744,24 +793,47 @@ def batch_processing_interface():
     st.subheader("📦 Пакетная обработка коллекции")
     st.markdown("Загрузите до 10 фотографий товаров для создания единой коллекции")
     
-    # Загрузка логотипа
-    st.markdown("**🏷️ Логотип для коллекции**")
-    logo_file = st.file_uploader(
-        "Загрузите логотип клиента",
-        type=['jpg', 'jpeg', 'png', 'webp'],
-        key="batch_logo"
-    )
+    # Загрузка логотипа и паттерна
+    col1, col2 = st.columns(2)
     
-    if logo_file:
-        logo_image = Image.open(logo_file)
-        st.session_state.batch_logo_image = logo_image
+    with col1:
+        st.markdown("**🏷️ Логотип для коллекции**")
+        logo_file = st.file_uploader(
+            "Загрузите логотип клиента",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="batch_logo"
+        )
         
-        # Компактное превью логотипа
-        preview_size = (80, 80)
-        preview_logo = logo_image.copy()
-        preview_logo.thumbnail(preview_size, Image.LANCZOS)
-        st.image(preview_logo, caption="Логотип", width=80)
-        st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+        if logo_file:
+            logo_image = Image.open(logo_file)
+            st.session_state.batch_logo_image = logo_image
+            
+            # Компактное превью логотипа
+            preview_size = (80, 80)
+            preview_logo = logo_image.copy()
+            preview_logo.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_logo, caption="Логотип", width=80)
+            st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+    
+    with col2:
+        st.markdown("**🎨 Паттерн (опционально)**")
+        pattern_file = st.file_uploader(
+            "Загрузите паттерн для коллекции",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="batch_pattern",
+            help="Паттерн будет использован для всех товаров коллекции"
+        )
+        
+        if pattern_file:
+            pattern_image = Image.open(pattern_file)
+            st.session_state.batch_pattern_image = pattern_image
+            
+            # Компактное превью паттерна
+            preview_size = (80, 80)
+            preview_pattern = pattern_image.copy()
+            preview_pattern.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_pattern, caption="Паттерн", width=80)
+            st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
     
     # Загрузка товаров
     st.markdown("**📤 Товары для коллекции (до 10 штук)**")
@@ -919,6 +991,11 @@ def batch_processing_interface():
                             for prompt_data in analysis_result["individual_prompts"]:
                                 extended_prompt = prompt_data.get("custom_prompt", "")
                                 
+                                # Добавляем логику для удаления фоновых объектов при смене ракурса
+                                product_angle = prompt_data.get("product_angle", "как на фото")
+                                if product_angle != "как на фото":
+                                    extended_prompt += " Удалить все фоновые объекты, людей, мебель и окружение. Оставить только основной товар/товары на чистом фоне."
+                                
                                 # Добавляем дополнительное описание, если оно указано
                                 if custom_description.strip():
                                     extended_prompt += f" {custom_description.strip()}"
@@ -947,8 +1024,9 @@ def batch_processing_interface():
                                 # Генерируем мокап для текущего товара
                                 try:
                                     generator = get_mockup_generator()
+                                    pattern_image = st.session_state.get("batch_pattern_image", None)
                                     mockup_result = generator.gemini_client.generate_mockup_with_analysis(
-                                        product_img, st.session_state.batch_logo_image, prompt_data, ""
+                                        product_img, st.session_state.batch_logo_image, prompt_data, "", pattern_image
                                     )
                                     
                                     if mockup_result and len(mockup_result) > 0:
@@ -1019,6 +1097,11 @@ def batch_processing_interface():
                             for prompt_data in analysis_result["individual_prompts"]:
                                 extended_prompt = prompt_data.get("custom_prompt", "")
                                 
+                                # Добавляем логику для удаления фоновых объектов при смене ракурса
+                                product_angle = prompt_data.get("product_angle", "как на фото")
+                                if product_angle != "как на фото":
+                                    extended_prompt += " Удалить все фоновые объекты, людей, мебель и окружение. Оставить только основной товар/товары на чистом фоне."
+                                
                                 # Добавляем дополнительное описание, если оно указано
                                 if custom_description.strip():
                                     extended_prompt += f" {custom_description.strip()}"
@@ -1047,8 +1130,9 @@ def batch_processing_interface():
                                 # Генерируем мокап для текущего товара
                                 try:
                                     generator = get_mockup_generator()
+                                    pattern_image = st.session_state.get("batch_pattern_image", None)
                                     mockup_result = generator.gemini_client.generate_mockup_with_analysis(
-                                        product_img, st.session_state.batch_logo_image, prompt_data, ""
+                                        product_img, st.session_state.batch_logo_image, prompt_data, "", pattern_image
                                     )
                                     
                                     if mockup_result and len(mockup_result) > 0:
