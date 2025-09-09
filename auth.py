@@ -31,7 +31,23 @@ def is_authenticated() -> bool:
     if not AUTH_ENABLED:
         return True
     
-    return st.session_state.get(AUTH_SESSION_KEY, False)
+    # Проверяем сессию и время последней активности
+    if st.session_state.get(AUTH_SESSION_KEY, False):
+        # Проверяем время последней активности (24 часа)
+        last_activity = st.session_state.get('last_activity', 0)
+        import time
+        current_time = time.time()
+        
+        # Если прошло больше 24 часов, сбрасываем аутентификацию
+        if current_time - last_activity > 24 * 60 * 60:
+            st.session_state[AUTH_SESSION_KEY] = False
+            return False
+        
+        # Обновляем время последней активности
+        st.session_state['last_activity'] = current_time
+        return True
+    
+    return False
 
 def login_form() -> bool:
     """Отображение формы входа"""
@@ -66,6 +82,7 @@ def login_form() -> bool:
             if submitted:
                 if check_password(password):
                     st.session_state[AUTH_SESSION_KEY] = True
+                    st.session_state['last_activity'] = time.time()
                     st.success("✅ Успешный вход!")
                     st.rerun()
                 else:

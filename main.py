@@ -25,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Кастомные CSS стили для компактности
+# Кастомные CSS стили для компактности и фоновых блоков
 st.markdown("""
 <style>
     /* Компактные заголовки */
@@ -55,6 +55,46 @@ st.markdown("""
     .stTextArea > div > div > textarea {
         font-size: 0.9rem;
     }
+    
+    /* Фоновые блоки для настроек */
+    .settings-block {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* Блок товара */
+    .product-block {
+        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        border-left: 4px solid #2196f3;
+    }
+    
+    /* Блок логотипа */
+    .logo-block {
+        background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e8 100%);
+        border-left: 4px solid #4caf50;
+    }
+    
+    /* Блок дополнительно */
+    .additional-block {
+        background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%);
+        border-left: 4px solid #ff9800;
+    }
+    
+    /* Улучшенные кнопки режима */
+    .mode-button {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .mode-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -79,19 +119,39 @@ def main():
         login_form()
         return
     
-    # Показываем кнопку выхода
-    logout_button()
-    
-    st.title("🎨 AI Mockup Generator с Gemini 2.5 Flash")
+    # Основной заголовок
+    st.markdown("# AI Mockup Generator")
     st.markdown("Создавайте профессиональные мокапы товаров с логотипами клиентов")
     
-    # Создание вкладок
-    tab1, tab2 = st.tabs(["🎯 Одиночная генерация", "📦 Пакетная обработка"])
+    # Кнопка выхода в правом верхнем углу
+    col1, col2 = st.columns([4, 1])
+    with col2:
+        logout_button()
     
-    with tab1:
+    # Выбор режима работы с улучшенным дизайном
+    st.markdown("---")
+    st.markdown("### Режим работы")
+    
+    # Создаем кнопки-переключатели
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Одиночная генерация", key="single_mode", use_container_width=True, type="primary" if st.session_state.get('mode', 'single') == 'single' else "secondary"):
+            st.session_state.mode = 'single'
+            st.rerun()
+    
+    with col2:
+        if st.button("Пакетная обработка", key="batch_mode", use_container_width=True, type="primary" if st.session_state.get('mode', 'single') == 'batch' else "secondary"):
+            st.session_state.mode = 'batch'
+            st.rerun()
+    
+    # Определяем режим
+    mode = 'single' if st.session_state.get('mode', 'single') == 'single' else 'batch'
+    
+    # Показываем соответствующий интерфейс
+    if mode == 'single':
         single_generation_interface()
-    
-    with tab2:
+    else:
         batch_processing_interface()
 
 def single_generation_interface():
@@ -150,203 +210,171 @@ def single_generation_interface():
             display_results(st.session_state.last_result)
         return
     
-    # Область с загрузкой изображений
-    st.subheader("Загрузка изображений")
-    col1, col2, col3 = st.columns([1, 1, 1])
+    # Разделяем настройки на логические блоки в колонках с фоновым разделением
+    col1, col2, col3 = st.columns(3)
     
     with col1:
+        # Блок "Товар" с фоновым разделением и загрузкой
+        st.markdown('<div class="settings-block product-block">', unsafe_allow_html=True)
+        st.markdown("### Товар")
+        st.markdown("---")
+        
         # Загрузка изображения товара
         product_file = st.file_uploader(
-            "Товар",
+            "Загрузите товар",
             type=['jpg', 'jpeg', 'png', 'webp'],
             key="product"
         )
         
         if product_file:
             product_image = Image.open(product_file)
-            # Сохраняем в сессии
             st.session_state.product_image = product_image
-            # Очень компактное превью
-            preview_size = (80, 80)
+            preview_size = (100, 100)
             preview_image = product_image.copy()
             preview_image.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_image, caption="Товар", width=80)
-            
-            # Информация об изображении
+            st.image(preview_image, caption="Товар", width=100)
             st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
         elif "product_image" in st.session_state:
-            # Показываем сохраненное изображение
             product_image = st.session_state.product_image
-            preview_size = (80, 80)
+            preview_size = (100, 100)
             preview_image = product_image.copy()
             preview_image.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_image, caption="Товар", width=80)
+            st.image(preview_image, caption="Товар", width=100)
             st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
+        
+        # Настройки товара
+        mockup_style = st.selectbox(
+            "Стиль",
+            ["Современный", "Премиальный", "Минималистичный", "В динамике"],
+            help="Стиль мокапа"
+        )
+        
+        product_color = st.text_input(
+            "Цвет товара",
+            value="как на фото",
+            help="Цвет товара"
+        )
+        
+        product_angle = st.selectbox(
+            "Ракурс",
+            ["как на фото", "спереди", "в полуоборот", "сверху", "в интерьере", "сбоку", "под углом"],
+            help="Угол съемки"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
+        # Блок "Логотип" с фоновым разделением и загрузкой
+        st.markdown('<div class="settings-block logo-block">', unsafe_allow_html=True)
+        st.markdown("### Логотип")
+        st.markdown("---")
+        
         # Загрузка логотипа
         logo_file = st.file_uploader(
-            "Логотип",
+            "Загрузите логотип",
             type=['jpg', 'jpeg', 'png', 'webp'],
             key="logo"
         )
         
         if logo_file:
             logo_image = Image.open(logo_file)
-            # Сохраняем в сессии
             st.session_state.logo_image = logo_image
-            # Очень компактное превью
-            preview_size = (80, 80)
+            preview_size = (100, 100)
             preview_logo = logo_image.copy()
             preview_logo.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_logo, caption="Логотип", width=80)
-            
-            # Информация об изображении
+            st.image(preview_logo, caption="Логотип", width=100)
             st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
         elif "logo_image" in st.session_state:
-            # Показываем сохраненное изображение
             logo_image = st.session_state.logo_image
-            preview_size = (80, 80)
+            preview_size = (100, 100)
             preview_logo = logo_image.copy()
             preview_logo.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_logo, caption="Логотип", width=80)
+            st.image(preview_logo, caption="Логотип", width=100)
             st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+        
+        # Настройки логотипа
+        logo_application_options = ["вышивка", "печать", "ткачество", "тиснение", "сублимация", "силикон", "термоперенос", "шелкография", "цифровая печать", "лазерная гравировка", "патч"]
+        logo_application = st.selectbox(
+            "Тип нанесения",
+            logo_application_options,
+            help="Тип нанесения логотипа"
+        )
+        
+        custom_application = st.text_input(
+            "Или введите свой тип нанесения",
+            placeholder="Например: аппликация, гравировка",
+            help="Введите свой тип нанесения, если его нет в списке"
+        )
+        
+        if custom_application.strip():
+            logo_application = custom_application.strip()
+            logo_application_from_select = None
+        else:
+            logo_application_from_select = logo_application
+        
+        logo_position = st.selectbox(
+            "Расположение",
+            ["центр", "верхний левый угол", "верхний правый угол", "нижний левый угол", "нижний правый угол", "левый бок", "правый бок", "верх", "низ"],
+            help="Расположение логотипа"
+        )
+        
+        logo_size = st.selectbox(
+            "Размер",
+            ["очень маленький", "маленький", "средний", "большой", "очень большой"],
+            help="Размер логотипа"
+        )
+        
+        logo_color = st.selectbox(
+            "Цвет",
+            ["как на фото", "черный", "белый"],
+            help="Цвет логотипа"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col3:
+        # Блок "Дополнительно" с фоновым разделением и загрузкой
+        st.markdown('<div class="settings-block additional-block">', unsafe_allow_html=True)
+        st.markdown("### Дополнительно")
+        st.markdown("---")
+        
         # Загрузка паттерна
         pattern_file = st.file_uploader(
             "Паттерн (опционально)",
             type=['jpg', 'jpeg', 'png', 'webp'],
             key="pattern",
-            help="Загрузите паттерн для использования на товаре"
+            help="Паттерн для нанесения на товар"
         )
         
         if pattern_file:
             pattern_image = Image.open(pattern_file)
-            # Сохраняем в сессии
             st.session_state.pattern_image = pattern_image
-            # Очень компактное превью
-            preview_size = (80, 80)
+            preview_size = (100, 100)
             preview_pattern = pattern_image.copy()
             preview_pattern.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_pattern, caption="Паттерн", width=80)
-            
-            # Информация об изображении
+            st.image(preview_pattern, caption="Паттерн", width=100)
             st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
         elif "pattern_image" in st.session_state:
-            # Показываем сохраненное изображение
             pattern_image = st.session_state.pattern_image
-            preview_size = (80, 80)
+            preview_size = (100, 100)
             preview_pattern = pattern_image.copy()
             preview_pattern.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_pattern, caption="Паттерн", width=80)
+            st.image(preview_pattern, caption="Паттерн", width=100)
             st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
-    
-    # Компактные настройки
-    st.markdown("---")
-    
-    # Разделяем настройки на логические блоки в колонках
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Блок "Товар" с правильным дизайном
-        with st.container():
-            st.markdown("### Товар")
-            st.markdown("---")
-            
-            # Стиль мокапа
-            mockup_style = st.selectbox(
-                "Стиль",
-                ["Современный", "Премиальный", "Минималистичный", "В динамике"],
-                help="Стиль мокапа"
-            )
-            
-            # Цвет товара
-            product_color = st.text_input(
-                "Цвет товара",
-                value="как на фото",
-                help="Цвет товара"
-            )
-            
-            # Ракурс товара
-            product_angle = st.selectbox(
-                "Ракурс",
-                ["как на фото", "спереди", "в полуоборот", "сверху", "в интерьере", "сбоку", "под углом"],
-                help="Угол съемки"
-            )
-    
-    with col2:
-        # Блок "Логотип" с правильным дизайном
-        with st.container():
-            st.markdown("### Логотип")
-            st.markdown("---")
-            
-            # Тип нанесения логотипа
-            logo_application_options = ["вышивка", "печать", "ткачество", "тиснение", "сублимация", "силикон", "термоперенос", "шелкография", "цифровая печать", "лазерная гравировка", "патч"]
-            logo_application = st.selectbox(
-                "Тип нанесения",
-                logo_application_options,
-                help="Тип нанесения логотипа"
-            )
-            
-            # Поле для ввода своего типа нанесения
-            custom_application = st.text_input(
-                "Или введите свой тип нанесения",
-                placeholder="Например: аппликация, гравировка",
-                help="Введите свой тип нанесения, если его нет в списке"
-            )
-            
-            # Используем кастомное значение если оно введено
-            if custom_application.strip():
-                logo_application = custom_application.strip()
-                # Очищаем selectbox значение если используется кастомное
-                logo_application_from_select = None
-            else:
-                logo_application_from_select = logo_application
-            
-            # Расположение логотипа
-            logo_position = st.selectbox(
-                "Расположение",
-                ["центр", "верхний левый угол", "верхний правый угол", "нижний левый угол", "нижний правый угол", "левый бок", "правый бок", "верх", "низ"],
-                help="Расположение логотипа"
-            )
-            
-            # Размер логотипа
-            logo_size = st.selectbox(
-                "Размер",
-                ["очень маленький", "маленький", "средний", "большой", "очень большой"],
-                help="Размер логотипа"
-            )
-            
-            # Цвет логотипа
-            logo_color = st.selectbox(
-                "Цвет",
-                ["как на фото", "черный", "белый"],
-                help="Цвет логотипа"
-            )
-    
-    with col3:
-        # Блок "Дополнительно" с правильным дизайном
-        with st.container():
-            st.markdown("### Дополнительно")
-            st.markdown("---")
-            
-            # Дополнительные опции для промпта
-            add_tag = st.checkbox("Добавить бирку", value=False, help="Добавить этикетку или бирку с логотипом к товару")
-            add_person = st.checkbox("Добавить человека", value=False, help="Показать товар в использовании человеком")
-            
-            # Дополнительные способы нанесения
-            st.markdown("**Доп. нанесение**")
-            add_badge = st.checkbox("Добавить шильдик", value=False, help="Добавить металлический шильдик с логотипом")
-            
-            # Поле для произвольного текста
-            st.markdown("**Детали**")
-            custom_prompt = st.text_area(
-                "Особые требования",
-                placeholder="Например: 'логотип в правом углу', 'добавить тени'",
-                height=60,
-                help="Дополнительные детали для промпта"
-            )
+        
+        # Дополнительные настройки
+        add_tag = st.checkbox("Добавить бирку", value=False, help="Добавить этикетку или бирку с логотипом к товару")
+        add_person = st.checkbox("Добавить человека", value=False, help="Показать товар в использовании человеком")
+        
+        st.markdown("**Доп. нанесение**")
+        add_badge = st.checkbox("Добавить шильдик", value=False, help="Добавить металлический шильдик с логотипом")
+        
+        st.markdown("**Детали**")
+        custom_prompt = st.text_area(
+            "Особые требования",
+            placeholder="Например: 'логотип в правом углу', 'добавить тени'",
+            height=60,
+            help="Дополнительные детали для промпта"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Компактные кнопки управления
     if ("product_image" in st.session_state and "logo_image" in st.session_state):
