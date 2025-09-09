@@ -32,26 +32,8 @@ def is_authenticated() -> bool:
     if not AUTH_ENABLED:
         return True
     
-    # Проверяем сессию и время последней активности
-    if st.session_state.get(AUTH_SESSION_KEY, False):
-        # Проверяем время последней активности (24 часа)
-        last_activity = st.session_state.get('last_activity', 0)
-        current_time = time.time()
-        
-        # Если прошло больше 24 часов, сбрасываем аутентификацию
-        if current_time - last_activity > 24 * 60 * 60:
-            st.session_state[AUTH_SESSION_KEY] = False
-            if 'last_activity' in st.session_state:
-                del st.session_state['last_activity']
-            return False
-        
-        # Обновляем время последней активности только раз в 10 минут (увеличили для стабильности)
-        if current_time - last_activity > 10 * 60:  # 10 минут
-            st.session_state['last_activity'] = current_time
-        
-        return True
-    
-    return False
+    # Простая проверка сессии без сложной логики времени
+    return st.session_state.get(AUTH_SESSION_KEY, False)
 
 def login_form() -> bool:
     """Отображение формы входа"""
@@ -65,17 +47,6 @@ def login_form() -> bool:
     </div>
     """, unsafe_allow_html=True)
     
-    # Показываем отладочную информацию
-    with st.expander("🔍 Отладочная информация"):
-        st.write(f"**Статус аутентификации:** {st.session_state.get(AUTH_SESSION_KEY, 'Не установлен')}")
-        st.write(f"**Последняя активность:** {st.session_state.get('last_activity', 'Не установлено')}")
-        st.write(f"**Текущее время:** {time.time()}")
-        st.write(f"**AUTH_ENABLED:** {AUTH_ENABLED}")
-        if st.button("🔄 Очистить сессию"):
-            for key in list(st.session_state.keys()):
-                if key.startswith('auth') or key == 'last_activity':
-                    del st.session_state[key]
-            st.rerun()
     
     # Центрируем форму входа
     col1, col2, col3 = st.columns([1, 2, 1])
