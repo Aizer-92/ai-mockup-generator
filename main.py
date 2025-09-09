@@ -58,42 +58,69 @@ st.markdown("""
     
     /* Дополнительные стили для контейнеров блоков */
     .stContainer {
-        background: var(--secondary-background-color) !important;
-        padding: 1rem !important;
-        border-radius: var(--base-radius) !important;
-        margin: 0.5rem 0 !important;
-        border: 1px solid var(--border-color) !important;
+        background: #f8f9fa !important;
+        padding: 1.5rem !important;
+        border-radius: 0.5rem !important;
+        margin: 1rem 0 !important;
+        border: 1px solid #e9ecef !important;
     }
     
     /* Стили для заголовков в контейнерах */
     .stContainer h3 {
-        color: var(--text-color) !important;
-        margin-bottom: 1rem !important;
+        color: #495057 !important;
+        margin-bottom: 1.5rem !important;
         font-weight: 600 !important;
     }
     
+    /* Увеличиваем расстояния между элементами */
+    .stContainer .stSelectbox,
+    .stContainer .stTextInput,
+    .stContainer .stTextArea,
+    .stContainer .stCheckbox,
+    .stContainer .stFileUploader {
+        margin-bottom: 1rem !important;
+    }
     
-    /* Мягкие кнопки режима */
+    /* Дополнительные отступы для разделителей */
+    .stContainer hr {
+        margin: 1.5rem 0 !important;
+    }
+    
+    /* Увеличиваем расстояния между колонками */
+    .stColumn {
+        padding: 0 0.5rem !important;
+    }
+    
+    /* Дополнительные отступы для основного контейнера */
+    .main .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    
+    
+    /* Кнопки режима */
     .stButton > button[kind="primary"] {
-        background-color: var(--secondary-background-color) !important;
-        color: var(--text-color) !important;
-        border: 1px solid var(--border-color) !important;
-        font-weight: 500;
+        background-color: #6c757d !important;
+        color: white !important;
+        border: 1px solid #6c757d !important;
+        font-weight: 600 !important;
+        border-radius: 0.5rem !important;
     }
     
     .stButton > button[kind="secondary"] {
-        background-color: var(--background-color) !important;
-        color: var(--primary-color) !important;
-        border: 1px solid var(--border-color) !important;
-        font-weight: 400;
+        background-color: #f8f9fa !important;
+        color: #6c757d !important;
+        border: 1px solid #e9ecef !important;
+        font-weight: 500 !important;
+        border-radius: 0.5rem !important;
     }
     
     .stButton > button:hover {
-        background-color: var(--primary-color) !important;
+        background-color: #5a6268 !important;
         color: white !important;
-        border-color: var(--primary-color) !important;
+        border-color: #5a6268 !important;
         transform: none !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
 </style>
 """, unsafe_allow_html=True)
