@@ -163,15 +163,15 @@ class GeminiClient:
         
         # Словари для перевода
         position_translation = {
-            "центр": "center",
-            "верхний левый угол": "top-left corner",
-            "верхний правый угол": "top-right corner", 
-            "нижний левый угол": "bottom-left corner",
-            "нижний правый угол": "bottom-right corner",
-            "левый бок": "left side",
-            "правый бок": "right side",
-            "верх": "top",
-            "низ": "bottom"
+            "центр": "center of the product",
+            "верхний левый угол": "top-left corner of the product",
+            "верхний правый угол": "top-right corner of the product", 
+            "нижний левый угол": "bottom-left corner of the product",
+            "нижний правый угол": "bottom-right corner of the product",
+            "левый бок": "left side of the product",
+            "правый бок": "right side of the product",
+            "верх": "top of the product",
+            "низ": "bottom of the product"
         }
         
         size_translation = {
