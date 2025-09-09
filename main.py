@@ -66,6 +66,7 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
         transition: all 0.3s ease !important;
         min-height: 200px !important;
+        display: block !important;
     }
     
     .settings-block:hover {
@@ -73,7 +74,7 @@ st.markdown("""
         transform: translateY(-2px) !important;
     }
     
-    /* Принудительное применение стилей к div с классами блоков */
+    /* Максимально агрессивные селекторы */
     div.settings-block,
     div.product-block,
     div.logo-block, 
@@ -82,7 +83,16 @@ st.markdown("""
     div.batch-pattern-block,
     div.batch-products-block,
     div.batch-settings-block,
-    div.batch-additional-block {
+    div.batch-additional-block,
+    .settings-block,
+    .product-block,
+    .logo-block,
+    .additional-block,
+    .batch-logo-block,
+    .batch-pattern-block,
+    .batch-products-block,
+    .batch-settings-block,
+    .batch-additional-block {
         background: #f8f9fa !important;
         padding: 2rem !important;
         border-radius: 16px !important;
@@ -92,28 +102,21 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
         transition: all 0.3s ease !important;
         min-height: 200px !important;
+        display: block !important;
+        width: 100% !important;
     }
     
-    /* Дополнительные селекторы для гарантированного применения */
-    .main .block-container div.settings-block,
-    .main .block-container div.product-block,
-    .main .block-container div.logo-block,
-    .main .block-container div.additional-block {
-        background: #f8f9fa !important;
-        padding: 2rem !important;
-        border-radius: 16px !important;
-        border: 1px solid #e9ecef !important;
-        border-left: 4px solid #6c757d !important;
-        margin: 1.5rem 0 !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-    }
-    
-    /* Универсальные селекторы для всех возможных контейнеров с нашими классами */
+    /* Универсальные селекторы для всех возможных контейнеров */
     div[class*="settings-block"],
     div[class*="product-block"],
     div[class*="logo-block"],
     div[class*="additional-block"],
-    div[class*="batch-"] {
+    div[class*="batch-"],
+    [class*="settings-block"],
+    [class*="product-block"],
+    [class*="logo-block"],
+    [class*="additional-block"],
+    [class*="batch-"] {
         background: #f8f9fa !important;
         padding: 2rem !important;
         border-radius: 16px !important;
@@ -122,6 +125,8 @@ st.markdown("""
         margin: 1.5rem 0 !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
         min-height: 200px !important;
+        display: block !important;
+        width: 100% !important;
     }
     
     /* Стили для заголовков блоков */
@@ -276,7 +281,7 @@ def single_generation_interface():
     
     with col1:
         # Блок "Товар" с красивым фоном
-        st.markdown('<div class="settings-block product-block">', unsafe_allow_html=True)
+        st.markdown('<div class="settings-block product-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
         st.markdown("### Товар")
         
         # Загрузка изображения товара
@@ -326,7 +331,7 @@ def single_generation_interface():
     
     with col2:
         # Блок "Логотип" с красивым фоном
-        st.markdown('<div class="settings-block logo-block">', unsafe_allow_html=True)
+        st.markdown('<div class="settings-block logo-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
         st.markdown("### Логотип")
         
         # Загрузка логотипа
@@ -395,7 +400,7 @@ def single_generation_interface():
     
     with col3:
         # Блок "Дополнительно" с красивым фоном
-        st.markdown('<div class="settings-block additional-block">', unsafe_allow_html=True)
+        st.markdown('<div class="settings-block additional-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
         st.markdown("### Дополнительно")
         
         # Загрузка паттерна
@@ -923,7 +928,7 @@ def batch_processing_interface():
     
     with col1:
         # Блок загрузки логотипа с правильным дизайном
-        st.markdown('<div class="settings-block batch-logo-block">', unsafe_allow_html=True)
+        st.markdown('<div class="settings-block batch-logo-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
         st.markdown("### Логотип для коллекции")
         
         logo_file = st.file_uploader(
@@ -947,7 +952,7 @@ def batch_processing_interface():
     
     with col2:
         # Блок загрузки паттерна с правильным дизайном
-        st.markdown('<div class="settings-block batch-pattern-block">', unsafe_allow_html=True)
+        st.markdown('<div class="settings-block batch-pattern-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
         st.markdown("### Паттерн (опционально)")
         
         pattern_file = st.file_uploader(
@@ -971,7 +976,7 @@ def batch_processing_interface():
         st.markdown('</div>', unsafe_allow_html=True)
     
     # Загрузка товаров с правильным дизайном
-    st.markdown('<div class="settings-block batch-products-block">', unsafe_allow_html=True)
+    st.markdown('<div class="settings-block batch-products-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
     st.markdown("### Товары для коллекции (до 10 штук)")
     
     product_files = st.file_uploader(
@@ -1026,7 +1031,7 @@ def batch_processing_interface():
         
         with col1:
             # Основные настройки с правильным дизайном
-            st.markdown('<div class="settings-block batch-settings-block">', unsafe_allow_html=True)
+            st.markdown('<div class="settings-block batch-settings-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
             st.markdown("### Настройки коллекции")
             
             product_color = st.selectbox(
@@ -1045,7 +1050,7 @@ def batch_processing_interface():
         
         with col2:
             # Дополнительные настройки с правильным дизайном
-            st.markdown('<div class="settings-block batch-additional-block">', unsafe_allow_html=True)
+            st.markdown('<div class="settings-block batch-additional-block" style="background: #f8f9fa; padding: 2rem; border-radius: 16px; border: 1px solid #e9ecef; border-left: 4px solid #6c757d; margin: 1.5rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 200px;">', unsafe_allow_html=True)
             st.markdown("### Дополнительно")
             
             collection_theme = st.text_input(
