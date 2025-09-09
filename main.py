@@ -58,18 +58,32 @@ st.markdown("""
     
     /* Фоновые блоки для настроек - красивый серый стиль */
     .settings-block {
-        background: #f8f9fa;
-        padding: 2rem;
-        border-radius: 16px;
-        border: 1px solid #e9ecef;
-        margin: 1.5rem 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
+        background: #f8f9fa !important;
+        padding: 2rem !important;
+        border-radius: 16px !important;
+        border: 1px solid #e9ecef !important;
+        margin: 1.5rem 0 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        transition: all 0.3s ease !important;
     }
     
     .settings-block:hover {
-        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    /* Специальные блоки с серым фоном - более точечная стилизация */
+    .product-block,
+    .logo-block, 
+    .additional-block,
+    .batch-logo-block,
+    .batch-pattern-block,
+    .batch-products-block,
+    .batch-settings-block,
+    .batch-additional-block {
+        background: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        border-left: 4px solid #6c757d !important;
     }
     
     /* Убираем цветные градиенты, делаем все блоки серыми */
@@ -79,12 +93,12 @@ st.markdown("""
     }
     
     /* Стили для заголовков блоков */
-    .settings-block h3 {
-        color: #495057;
-        margin-bottom: 1.5rem;
-        font-weight: 600;
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 0.5rem;
+    .settings-block h3, .stContainer h3 {
+        color: #495057 !important;
+        margin-bottom: 1.5rem !important;
+        font-weight: 600 !important;
+        border-bottom: 2px solid #e9ecef !important;
+        padding-bottom: 0.5rem !important;
     }
     
     /* Мягкие кнопки режима */
@@ -880,62 +894,63 @@ def batch_processing_interface():
     
     with col1:
         # Блок загрузки логотипа с правильным дизайном
-        with st.container():
-            st.markdown("### Логотип для коллекции")
-            st.markdown("---")
+        st.markdown('<div class="settings-block batch-logo-block">', unsafe_allow_html=True)
+        st.markdown("### Логотип для коллекции")
+        
+        logo_file = st.file_uploader(
+            "Загрузите логотип клиента",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="batch_logo"
+        )
+        
+        if logo_file:
+            logo_image = Image.open(logo_file)
+            st.session_state.batch_logo_image = logo_image
             
-            logo_file = st.file_uploader(
-                "Загрузите логотип клиента",
-                type=['jpg', 'jpeg', 'png', 'webp'],
-                key="batch_logo"
-            )
-            
-            if logo_file:
-                logo_image = Image.open(logo_file)
-                st.session_state.batch_logo_image = logo_image
-                
-                # Компактное превью логотипа
-                preview_size = (80, 80)
-                preview_logo = logo_image.copy()
-                preview_logo.thumbnail(preview_size, Image.LANCZOS)
-                st.image(preview_logo, caption="Логотип", width=80)
-                st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+            # Компактное превью логотипа
+            preview_size = (80, 80)
+            preview_logo = logo_image.copy()
+            preview_logo.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_logo, caption="Логотип", width=80)
+            st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         # Блок загрузки паттерна с правильным дизайном
-        with st.container():
-            st.markdown("### Паттерн (опционально)")
-            st.markdown("---")
+        st.markdown('<div class="settings-block batch-pattern-block">', unsafe_allow_html=True)
+        st.markdown("### Паттерн (опционально)")
+        
+        pattern_file = st.file_uploader(
+            "Загрузите паттерн для коллекции",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="batch_pattern",
+            help="Паттерн будет использован для всех товаров коллекции"
+        )
+        
+        if pattern_file:
+            pattern_image = Image.open(pattern_file)
+            st.session_state.batch_pattern_image = pattern_image
             
-            pattern_file = st.file_uploader(
-                "Загрузите паттерн для коллекции",
-                type=['jpg', 'jpeg', 'png', 'webp'],
-                key="batch_pattern",
-                help="Паттерн будет использован для всех товаров коллекции"
-            )
-            
-            if pattern_file:
-                pattern_image = Image.open(pattern_file)
-                st.session_state.batch_pattern_image = pattern_image
-                
-                # Компактное превью паттерна
-                preview_size = (80, 80)
-                preview_pattern = pattern_image.copy()
-                preview_pattern.thumbnail(preview_size, Image.LANCZOS)
-                st.image(preview_pattern, caption="Паттерн", width=80)
-                st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
+            # Компактное превью паттерна
+            preview_size = (80, 80)
+            preview_pattern = pattern_image.copy()
+            preview_pattern.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_pattern, caption="Паттерн", width=80)
+            st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Загрузка товаров с правильным дизайном
-    with st.container():
-        st.markdown("### Товары для коллекции (до 10 штук)")
-        st.markdown("---")
-        
-        product_files = st.file_uploader(
-            "Загрузите изображения товаров",
-            type=['jpg', 'jpeg', 'png', 'webp'],
-            accept_multiple_files=True,
-            key="batch_products"
-        )
+    st.markdown('<div class="settings-block batch-products-block">', unsafe_allow_html=True)
+    st.markdown("### Товары для коллекции (до 10 штук)")
+    
+    product_files = st.file_uploader(
+        "Загрузите изображения товаров",
+        type=['jpg', 'jpeg', 'png', 'webp'],
+        accept_multiple_files=True,
+        key="batch_products"
+    )
     
     if product_files and len(product_files) > 10:
         st.error("⚠️ Максимум 10 товаров за раз")
@@ -971,6 +986,8 @@ def batch_processing_interface():
                 )
                 st.session_state.batch_product_names[i] = product_name
     
+    st.markdown('</div>', unsafe_allow_html=True)
+    
     # Настройки коллекции
     if product_files and logo_file:
         st.markdown("---")
@@ -980,45 +997,47 @@ def batch_processing_interface():
         
         with col1:
             # Основные настройки с правильным дизайном
-            with st.container():
-                st.markdown("### Настройки коллекции")
-                st.markdown("---")
-                
-                product_color = st.selectbox(
-                    "Цвет товаров",
-                    ["как на фото", "белый", "черный", "серый", "красный", "синий", "зеленый", "желтый", "розовый", "фиолетовый", "коричневый", "бежевый", "натуральный"],
-                    help="Основной цвет для всех товаров коллекции"
-                )
-                
-                collection_style = st.selectbox(
-                    "Стиль коллекции",
-                    ["Современный", "Премиальный", "Минималистичный", "В динамике"],
-                    help="Единый стиль для всей коллекции"
-                )
+            st.markdown('<div class="settings-block batch-settings-block">', unsafe_allow_html=True)
+            st.markdown("### Настройки коллекции")
+            
+            product_color = st.selectbox(
+                "Цвет товаров",
+                ["как на фото", "белый", "черный", "серый", "красный", "синий", "зеленый", "желтый", "розовый", "фиолетовый", "коричневый", "бежевый", "натуральный"],
+                help="Основной цвет для всех товаров коллекции"
+            )
+            
+            collection_style = st.selectbox(
+                "Стиль коллекции",
+                ["Современный", "Премиальный", "Минималистичный", "В динамике"],
+                help="Единый стиль для всей коллекции"
+            )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
         with col2:
             # Дополнительные настройки с правильным дизайном
-            with st.container():
-                st.markdown("### Дополнительно")
-                st.markdown("---")
-                
-                collection_theme = st.text_input(
-                    "Тема коллекции",
-                    placeholder="Например: 'Летняя коллекция', 'Спортивная линия'",
-                    help="Тема или название коллекции"
-                )
-                
-                # Дополнительное описание для промптов
-                custom_description = st.text_area(
-                    "Доп описание",
-                    placeholder="Дополнительные детали для всех товаров коллекции. Например: 'добавить тени', 'яркое освещение', 'премиум качество'",
-                    height=80,
-                    help="Дополнительные детали, которые будут добавлены к промптам всех товаров"
-                )
-                
-                # Дополнительные опции
-                add_tag = st.checkbox("Добавить бирки", value=False, help="Добавить этикетки или бирки с логотипом к товарам")
-                add_person = st.checkbox("Показать в использовании", value=False, help="Показать товары в использовании")
+            st.markdown('<div class="settings-block batch-additional-block">', unsafe_allow_html=True)
+            st.markdown("### Дополнительно")
+            
+            collection_theme = st.text_input(
+                "Тема коллекции",
+                placeholder="Например: 'Летняя коллекция', 'Спортивная линия'",
+                help="Тема или название коллекции"
+            )
+            
+            # Дополнительное описание для промптов
+            custom_description = st.text_area(
+                "Доп описание",
+                placeholder="Дополнительные детали для всех товаров коллекции. Например: 'добавить тени', 'яркое освещение', 'премиум качество'",
+                height=80,
+                help="Дополнительные детали, которые будут добавлены к промптам всех товаров"
+            )
+            
+            # Дополнительные опции
+            add_tag = st.checkbox("Добавить бирки", value=False, help="Добавить этикетки или бирки с логотипом к товарам")
+            add_person = st.checkbox("Показать в использовании", value=False, help="Показать товары в использовании")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # Кнопка обработки
         st.markdown("---")
