@@ -183,6 +183,17 @@ def main():
         login_form()
         return
     
+    # Отладочная информация для сессии (можно убрать позже)
+    with st.expander("🔍 Отладка сессии", expanded=False):
+        st.write(f"**Статус аутентификации:** {st.session_state.get('authenticated', 'Не установлен')}")
+        st.write(f"**Последняя активность:** {st.session_state.get('last_activity', 'Не установлено')}")
+        st.write(f"**Текущее время:** {time.time()}")
+        if st.button("🔄 Очистить сессию"):
+            for key in list(st.session_state.keys()):
+                if key.startswith('auth') or key == 'last_activity':
+                    del st.session_state[key]
+            st.rerun()
+    
     # Основной заголовок
     st.markdown("# AI Mockup Generator")
     st.markdown("Создавайте профессиональные мокапы товаров с логотипами клиентов")

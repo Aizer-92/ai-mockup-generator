@@ -45,8 +45,8 @@ def is_authenticated() -> bool:
                 del st.session_state['last_activity']
             return False
         
-        # Обновляем время последней активности только раз в 5 минут
-        if current_time - last_activity > 5 * 60:  # 5 минут
+        # Обновляем время последней активности только раз в 10 минут (увеличили для стабильности)
+        if current_time - last_activity > 10 * 60:  # 10 минут
             st.session_state['last_activity'] = current_time
         
         return True
@@ -64,6 +64,18 @@ def login_form() -> bool:
         <p style="color: #666; font-size: 1.1rem;">Введите пароль для доступа к приложению</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Показываем отладочную информацию
+    with st.expander("🔍 Отладочная информация"):
+        st.write(f"**Статус аутентификации:** {st.session_state.get(AUTH_SESSION_KEY, 'Не установлен')}")
+        st.write(f"**Последняя активность:** {st.session_state.get('last_activity', 'Не установлено')}")
+        st.write(f"**Текущее время:** {time.time()}")
+        st.write(f"**AUTH_ENABLED:** {AUTH_ENABLED}")
+        if st.button("🔄 Очистить сессию"):
+            for key in list(st.session_state.keys()):
+                if key.startswith('auth') or key == 'last_activity':
+                    del st.session_state[key]
+            st.rerun()
     
     # Центрируем форму входа
     col1, col2, col3 = st.columns([1, 2, 1])
