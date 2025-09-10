@@ -12,7 +12,7 @@ from typing import Optional
 
 # Импортируем конфигурацию после инициализации Streamlit
 from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST
-from auth import is_authenticated, login_form, logout_button, require_auth
+from auth import is_authenticated, login_form, logout_button, require_auth, get_user_info
 from mockup_generator import MockupGenerator
 from batch_processor import BatchProcessor
 
@@ -163,8 +163,14 @@ def main():
     st.markdown("# AI Mockup Generator")
     st.markdown("Создавайте профессиональные мокапы товаров с логотипами клиентов")
     
-    # Кнопка выхода в правом верхнем углу
+    # Информация о пользователе и кнопка выхода в правом верхнем углу
     col1, col2 = st.columns([4, 1])
+    with col1:
+        # Показываем информацию о пользователе
+        if is_authenticated():
+            user_info = get_user_info()
+            if user_info:
+                st.caption(f"👤 {user_info['name']} ({user_info['email']})")
     with col2:
         logout_button()
     
