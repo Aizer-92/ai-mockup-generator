@@ -728,7 +728,7 @@ Generate the mockup image."""
     
 
 def display_results(result: dict):
-    """Отображение результатов генерации"""
+    """Отображение результатов генерации с динамическим обновлением"""
     
     # Сохраняем результат в session_state для галереи
     st.session_state.last_result = result
@@ -769,10 +769,18 @@ def display_results(result: dict):
                 if gallery_entry not in st.session_state.generated_mockups:
                     st.session_state.generated_mockups.append(gallery_entry)
     
+    # Создаем динамические контейнеры для мокапов
+    display_mockups_dynamically(mockups, result)
+
+def display_mockups_dynamically(mockups: dict, result: dict):
+    """Динамическое отображение мокапов с возможностью обновления"""
+    
     # Проверка, использовался ли fallback
     fallback_used = mockups.get("fallback_used", False)
     
-    # Показываем только Gemini мокапы
+    # Создаем контейнеры для динамического обновления
+    if "mockup_containers" not in st.session_state:
+        st.session_state.mockup_containers = {}
     
     # Gemini мокапы (если есть)
     if "gemini_mockups" in mockups:
@@ -782,52 +790,222 @@ def display_results(result: dict):
             st.subheader("🤖 AI-мокапы от Gemini 2.5 Flash")
             
             for i, mockup in enumerate(gemini_mockups):
-                if "description" in mockup:
-                    st.write(f"**Вариант {i+1}:** {mockup['description']}")
+                # Создаем уникальный ключ для контейнера
+                container_key = f"mockup_{i}"
                 
-                # Если есть изображение от Gemini
-                if "image_data" in mockup:
-                    try:
-                        from PIL import Image
+                # Создаем контейнер если его нет
+                if container_key not in st.session_state.mockup_containers:
+                    st.session_state.mockup_containers[container_key] = st.empty()
+                
+                # Получаем контейнер
+                mockup_container = st.session_state.mockup_containers[container_key]
+                
+                # Отображаем мокап в контейнере
+                with mockup_container.container():
+                    if "description" in mockup:
+                        st.write(f"**Вариант {i+1}:** {mockup['description']}")
+                    
+                    # Если есть изображение от Gemini
+                    if "image_data" in mockup:
+                        try:
+                            from PIL import Image
+                            import io
+                            
+                            # image_data уже является bytes от Gemini
+                            image_data = mockup["image_data"]
+                            image = Image.open(io.BytesIO(image_data))
+                            
+                            # Увеличенное превью результата для лучшего просмотра
+                            st.image(image, caption=f"AI-мокап {i+1}", use_container_width=True)
+                            
+                            # Кнопки управления
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                # Кнопка скачивания
+                                st.download_button(
+                                    label=f"📥 Скачать AI-мокап {i+1}",
+                                    data=image_data,
+                                    file_name=f"ai_mockup_{i+1}.jpg",
+                                    mime="image/jpeg",
+                                    key=f"download_ai_{i+1}",
+                                    use_container_width=True
+                                )
+                            
+                            with col2:
+                                # Кнопка пересоздания с динамическим обновлением
+                                if st.button(f"🔄 Пересоздать {i+1}", key=f"regenerate_{i+1}", use_container_width=True):
+                                    regenerate_mockup_dynamically(i, mockup, result, container_key)
+                            
+                            # Показываем текстовый ответ если есть
+                            if "text_response" in mockup and mockup["text_response"]:
+                                with st.expander(f"📝 Текстовый ответ от Gemini (мокап {i+1})"):
+                                    st.write(mockup["text_response"])
+                        
+                        except Exception as e:
+                            st.error(f"❌ Ошибка отображения мокапа {i+1}: {str(e)}")
+    
+    # Локальные мокапы (если есть)
+    if "local_mockups" in mockups:
+        local_mockups = mockups["local_mockups"]
+        
+        if local_mockups:
+            st.subheader("🏠 Локальные мокапы")
+            
+            for i, mockup in enumerate(local_mockups):
+                if "image" in mockup:
+                    st.image(mockup["image"], caption=f"Локальный мокап {i+1}", use_container_width=True)
+                    
+                    # Кнопка скачивания для локальных мокапов
+                    if "image" in mockup:
+                        # Конвертируем PIL Image в bytes
                         import io
+                        img_byte_arr = io.BytesIO()
+                        mockup["image"].save(img_byte_arr, format='JPEG')
+                        img_byte_arr = img_byte_arr.getvalue()
                         
-                        # image_data уже является bytes от Gemini
-                        image_data = mockup["image_data"]
-                        image = Image.open(io.BytesIO(image_data))
-                        
-                        # Увеличенное превью результата для лучшего просмотра
-                        st.image(image, caption=f"AI-мокап {i+1}", use_container_width=True)
-                        
-                        # Кнопки управления
-                        col1, col2 = st.columns(2)
-                        
-                        with col1:
-                            # Кнопка скачивания
-                            st.download_button(
-                                label=f"📥 Скачать AI-мокап {i+1}",
-                                data=image_data,
-                                file_name=f"ai_mockup_{i+1}.jpg",
-                                mime="image/jpeg",
-                                key=f"download_ai_{i+1}",
-                                use_container_width=True
-                            )
-                        
-                        with col2:
-                            # Кнопка пересоздания
-                            if st.button(f"🔄 Пересоздать {i+1}", key=f"regenerate_ai_{i+1}", use_container_width=True):
-                                # Сохраняем параметры для пересоздания
-                                st.session_state.regenerate_params = {
-                                    "mockup_index": i,
-                                    "mockup_data": mockup,
-                                    "original_result": result
-                                }
-                                st.rerun()
-                    except Exception as e:
-                        st.error(f"Ошибка отображения AI-изображения: {e}")
-                        # Показываем дополнительную информацию для отладки
-                        st.write(f"Тип image_data: {type(mockup['image_data'])}")
-                        if hasattr(mockup['image_data'], '__len__'):
-                            st.write(f"Длина image_data: {len(mockup['image_data'])}")
+                        st.download_button(
+                            label=f"📥 Скачать локальный мокап {i+1}",
+                            data=img_byte_arr,
+                            file_name=f"local_mockup_{i+1}.jpg",
+                            mime="image/jpeg",
+                            key=f"download_local_{i+1}",
+                            use_container_width=True
+                        )
+
+def regenerate_mockup_dynamically(mockup_index: int, original_mockup: dict, original_result: dict, container_key: str):
+    """Динамическое пересоздание мокапа с обновлением в реальном времени"""
+    
+    # Получаем контейнер для обновления
+    mockup_container = st.session_state.mockup_containers[container_key]
+    
+    # Показываем индикатор загрузки
+    with mockup_container.container():
+        st.info(f"🔄 Пересоздание мокапа {mockup_index + 1}...")
+        
+        # Создаем прогресс-бар
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        try:
+            # Обновляем статус
+            status_text.text("🔄 Подключение к Gemini...")
+            progress_bar.progress(20)
+            time.sleep(0.5)
+            
+            # Получаем генератор
+            generator = get_mockup_generator()
+            
+            # Извлекаем параметры из оригинального результата
+            mockup_style = original_result.get("style", "modern")
+            logo_application = original_result.get("logo_application", "embroidery")
+            custom_prompt = original_result.get("custom_prompt", "")
+            product_color = original_result.get("product_color", "белый")
+            product_angle = original_result.get("product_angle", "спереди")
+            logo_position = original_result.get("logo_position", "центр")
+            logo_size = original_result.get("logo_size", "средний")
+            logo_color = original_result.get("logo_color", "как на фото")
+            
+            # Обновляем статус
+            status_text.text("🎨 Генерация нового мокапа...")
+            progress_bar.progress(50)
+            time.sleep(0.5)
+            
+            # Генерируем новый мокап с теми же параметрами
+            new_result = generator.generate_mockup(
+                st.session_state.product_image, st.session_state.logo_image,
+                mockup_style, logo_application, custom_prompt, product_color,
+                product_angle, logo_position, logo_size, logo_color
+            )
+            
+            # Обновляем статус
+            status_text.text("✅ Обработка результата...")
+            progress_bar.progress(80)
+            time.sleep(0.5)
+            
+            # Заменяем только выбранный мокап в оригинальном результате
+            if new_result and "mockups" in new_result and "gemini_mockups" in new_result["mockups"]:
+                new_mockups = new_result["mockups"]["gemini_mockups"]
+                if new_mockups and len(new_mockups) > 0:
+                    # Заменяем конкретный мокап
+                    original_result["mockups"]["gemini_mockups"][mockup_index] = new_mockups[0]
+                    
+                    # Обновляем session_state
+                    st.session_state.last_result = original_result
+                    
+                    # Обновляем статус
+                    status_text.text("🎉 Мокап успешно пересоздан!")
+                    progress_bar.progress(100)
+                    time.sleep(1)
+                    
+                    # Очищаем прогресс-бар и статус
+                    progress_bar.empty()
+                    status_text.empty()
+                    
+                    # Обновляем отображение мокапа
+                    update_mockup_display(mockup_index, new_mockups[0], original_result, container_key)
+                    
+                    st.success(f"✅ Мокап {mockup_index + 1} пересоздан!")
+                else:
+                    st.error("❌ Не удалось получить новый мокап")
+            else:
+                st.error("❌ Ошибка при генерации нового мокапа")
+        
+        except Exception as e:
+            st.error(f"❌ Ошибка пересоздания: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+
+def update_mockup_display(mockup_index: int, new_mockup: dict, result: dict, container_key: str):
+    """Обновление отображения конкретного мокапа"""
+    
+    # Получаем контейнер
+    mockup_container = st.session_state.mockup_containers[container_key]
+    
+    # Обновляем содержимое контейнера
+    with mockup_container.container():
+        if "description" in new_mockup:
+            st.write(f"**Вариант {mockup_index+1}:** {new_mockup['description']}")
+        
+        # Если есть изображение от Gemini
+        if "image_data" in new_mockup:
+            try:
+                from PIL import Image
+                import io
+                
+                # image_data уже является bytes от Gemini
+                image_data = new_mockup["image_data"]
+                image = Image.open(io.BytesIO(image_data))
+                
+                # Увеличенное превью результата для лучшего просмотра
+                st.image(image, caption=f"AI-мокап {mockup_index+1}", use_container_width=True)
+                
+                # Кнопки управления
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Кнопка скачивания
+                    st.download_button(
+                        label=f"📥 Скачать AI-мокап {mockup_index+1}",
+                        data=image_data,
+                        file_name=f"ai_mockup_{mockup_index+1}.jpg",
+                        mime="image/jpeg",
+                        key=f"download_ai_{mockup_index+1}_new",
+                        use_container_width=True
+                    )
+                
+                with col2:
+                    # Кнопка пересоздания с динамическим обновлением
+                    if st.button(f"🔄 Пересоздать {mockup_index+1}", key=f"regenerate_{mockup_index+1}_new", use_container_width=True):
+                        regenerate_mockup_dynamically(mockup_index, new_mockup, result, container_key)
+                
+                # Показываем текстовый ответ если есть
+                if "text_response" in new_mockup and new_mockup["text_response"]:
+                    with st.expander(f"📝 Текстовый ответ от Gemini (мокап {mockup_index+1})"):
+                        st.write(new_mockup["text_response"])
+            
+            except Exception as e:
+                st.error(f"❌ Ошибка отображения мокапа {mockup_index+1}: {str(e)}")
     
     # Информация о результате
     st.info(f"Источник: {result.get('source', 'unknown')} | "
