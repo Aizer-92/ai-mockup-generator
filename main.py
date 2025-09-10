@@ -1411,43 +1411,89 @@ def gallery_page():
     st.markdown("# 🖼️ Галерея мокапов")
     st.markdown("Просмотр всех сгенерированных мокапов")
     
-    # Получаем список всех изображений из кэша
+    # Получаем список всех изображений из outputs и cache
+    outputs_dir = "outputs"
     cache_dir = "cache"
-    images_dir = os.path.join(cache_dir, "images")
     
-    if not os.path.exists(images_dir):
-        st.info("📁 Папка с изображениями пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+    # Проверяем обе папки
+    all_image_files = []
+    all_mockups_data = []
+    
+    # 1. Проверяем папку outputs (основное место сохранения)
+    if os.path.exists(outputs_dir):
+        output_files = [f for f in os.listdir(outputs_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
+        for image_file in output_files:
+            image_path = os.path.join(outputs_dir, image_file)
+            # Извлекаем cache_key из имени файла
+            cache_key = image_file.split('_')[0]
+            metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
+            
+            metadata = {}
+            if os.path.exists(metadata_file):
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                except:
+                    pass
+            
+            all_mockups_data.append({
+                'image_file': image_file,
+                'image_path': image_path,
+                'cache_key': cache_key,
+                'metadata': metadata,
+                'created_time': os.path.getctime(image_path),
+                'source': 'outputs'
+            })
+    
+    # 2. Проверяем папку cache/images (дополнительное место)
+    cache_images_dir = os.path.join(cache_dir, "images")
+    if os.path.exists(cache_images_dir):
+        cache_files = [f for f in os.listdir(cache_images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
+        for image_file in cache_files:
+            image_path = os.path.join(cache_images_dir, image_file)
+            # Извлекаем cache_key из имени файла
+            cache_key = image_file.split('_')[0]
+            metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
+            
+            metadata = {}
+            if os.path.exists(metadata_file):
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                except:
+                    pass
+            
+            all_mockups_data.append({
+                'image_file': image_file,
+                'image_path': image_path,
+                'cache_key': cache_key,
+                'metadata': metadata,
+                'created_time': os.path.getctime(image_path),
+                'source': 'cache'
+            })
+    
+    if not all_mockups_data:
+        st.info("📁 Папки с изображениями пока пусты. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+        st.info("💡 Изображения сохраняются в папках `outputs/` и `cache/images/`")
+        
+        # Отладочная информация
+        with st.expander("🔍 Отладочная информация"):
+            st.write(f"**Текущая рабочая директория:** {os.getcwd()}")
+            st.write(f"**Проверяемые папки:**")
+            st.write(f"- `{outputs_dir}`: {'✅ существует' if os.path.exists(outputs_dir) else '❌ не существует'}")
+            st.write(f"- `{cache_images_dir}`: {'✅ существует' if os.path.exists(cache_images_dir) else '❌ не существует'}")
+            
+            if os.path.exists(outputs_dir):
+                files = os.listdir(outputs_dir)
+                st.write(f"**Файлы в {outputs_dir}:** {files}")
+            
+            if os.path.exists(cache_images_dir):
+                files = os.listdir(cache_images_dir)
+                st.write(f"**Файлы в {cache_images_dir}:** {files}")
+        
         return
     
-    # Получаем все изображения
-    image_files = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
-    
-    if not image_files:
-        st.info("📁 В папке нет изображений. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
-        return
-    
-    # Получаем метаданные для каждого изображения
-    mockups_data = []
-    for image_file in image_files:
-        # Извлекаем cache_key из имени файла
-        cache_key = image_file.split('_')[0]
-        metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
-        
-        metadata = {}
-        if os.path.exists(metadata_file):
-            try:
-                with open(metadata_file, 'r', encoding='utf-8') as f:
-                    metadata = json.load(f)
-            except:
-                pass
-        
-        mockups_data.append({
-            'image_file': image_file,
-            'image_path': os.path.join(images_dir, image_file),
-            'cache_key': cache_key,
-            'metadata': metadata,
-            'created_time': os.path.getctime(os.path.join(images_dir, image_file))
-        })
+    mockups_data = all_mockups_data
     
     # Сортируем по дате создания (новые сверху)
     mockups_data.sort(key=lambda x: x['created_time'], reverse=True)

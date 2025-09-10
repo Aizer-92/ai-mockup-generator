@@ -32,8 +32,23 @@ def is_authenticated() -> bool:
     if not AUTH_ENABLED:
         return True
     
-    # Простая проверка сессии без сложной логики времени
-    return st.session_state.get(AUTH_SESSION_KEY, False)
+    # Проверяем сессию и время последней активности
+    if st.session_state.get(AUTH_SESSION_KEY, False):
+        last_activity = st.session_state.get('last_activity', 0)
+        session_duration = st.session_state.get('session_duration', 24 * 3600)  # По умолчанию 24 часа
+        current_time = time.time()
+        
+        # Проверяем, не истекла ли сессия
+        if current_time - last_activity < session_duration:
+            # Обновляем время последней активности
+            st.session_state['last_activity'] = current_time
+            return True
+        else:
+            # Сессия истекла
+            st.session_state[AUTH_SESSION_KEY] = False
+            return False
+    
+    return False
 
 def login_form() -> bool:
     """Отображение формы входа"""
@@ -64,12 +79,21 @@ def login_form() -> bool:
                 help="Введите пароль для доступа к приложению"
             )
             
+            remember_me = st.checkbox("Запомнить меня на 7 дней", value=True)
+            
             submitted = st.form_submit_button("🚀 Войти", type="primary", use_container_width=True)
             
             if submitted:
                 if check_password(password):
                     st.session_state[AUTH_SESSION_KEY] = True
                     st.session_state['last_activity'] = time.time()
+                    
+                    # Устанавливаем время сессии в зависимости от "Запомнить меня"
+                    if remember_me:
+                        st.session_state['session_duration'] = 7 * 24 * 3600  # 7 дней
+                    else:
+                        st.session_state['session_duration'] = 24 * 3600  # 1 день
+                    
                     st.success("✅ Успешный вход!")
                     st.rerun()
                 else:
