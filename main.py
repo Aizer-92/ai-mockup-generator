@@ -11,7 +11,7 @@ import time
 from typing import Optional
 
 # Импортируем конфигурацию после инициализации Streamlit
-from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST
+from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST, GOOGLE_DRIVE_ENABLED
 from auth import is_authenticated, login_form, logout_button, require_auth, get_user_info
 from mockup_generator import MockupGenerator
 from batch_processor import BatchProcessor
@@ -744,7 +744,7 @@ def display_results(result: dict):
         st.error(f"Доступные ключи в результате: {list(result.keys())}")
         return
     
-    # Добавляем новые мокапы в session_state
+    # Добавляем новые мокапы в session_state и загружаем в Google Drive
     if "gemini_mockups" in mockups:
         for mockup in mockups["gemini_mockups"]:
             if "image_data" in mockup:
@@ -768,6 +768,9 @@ def display_results(result: dict):
                 # Добавляем в session_state (избегаем дублирования)
                 if gallery_entry not in st.session_state.generated_mockups:
                     st.session_state.generated_mockups.append(gallery_entry)
+                
+                # Загружаем в Google Drive если включено
+                upload_to_google_drive(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
     
     # Создаем динамические контейнеры для мокапов
     display_mockups_dynamically(mockups, result)
@@ -1703,12 +1706,19 @@ def gallery_page():
                     'image_data': mockup_data['image_data']
                 })
     
-    # Объединяем файловые и session_state мокапы
+    # Получаем мокапы из Google Drive
+    drive_mockups = get_google_drive_mockups(50)
+    
+    # Объединяем все источники мокапов
     all_mockups_data.extend(session_mockups)
+    all_mockups_data.extend(drive_mockups)
     
     if not all_mockups_data:
-        st.info("📁 Папки с изображениями пока пусты. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
-        st.info("💡 Изображения сохраняются в папках `outputs/` и `cache/images/`, а также в памяти сессии")
+        st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+        if GOOGLE_DRIVE_ENABLED:
+            st.info("💡 Изображения сохраняются в Google Drive, памяти сессии и локальных папках")
+        else:
+            st.info("💡 Изображения сохраняются в памяти сессии и локальных папках")
         
         # Отладочная информация
         with st.expander("🔍 Отладочная информация"):
@@ -1726,6 +1736,8 @@ def gallery_page():
                 st.write(f"**Файлы в {cache_images_dir}:** {files}")
             
             st.write(f"**Мокапы в session_state:** {len(session_mockups)}")
+            st.write(f"**Мокапы в Google Drive:** {len(drive_mockups)}")
+            st.write(f"**Google Drive включен:** {GOOGLE_DRIVE_ENABLED}")
         
         return
     
@@ -1970,6 +1982,81 @@ def gallery_page():
                 pass
         
         st.metric("Размер папки", f"{total_size / (1024*1024):.1f} МБ")
+
+def upload_to_google_drive(image_data: bytes, metadata: dict, description: str = ""):
+    """Загружает мокап в Google Drive"""
+    if not GOOGLE_DRIVE_ENABLED:
+        return
+    
+    try:
+        from google_drive_client import get_drive_client
+        
+        # Получаем клиент Google Drive
+        drive_client = get_drive_client()
+        if not drive_client:
+            return
+        
+        # Создаем имя файла
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        style = metadata.get("mockup_style", "unknown")
+        filename = f"mockup_{timestamp}_{style}.jpg"
+        
+        # Подготавливаем метаданные
+        upload_metadata = {
+            **metadata,
+            "description": description,
+            "uploaded_at": datetime.now().isoformat(),
+            "source": "AI Mockup Generator"
+        }
+        
+        # Загружаем файл
+        file_id = drive_client.upload_mockup(image_data, filename, upload_metadata)
+        if file_id:
+            print(f"✅ Мокап загружен в Google Drive: {filename}")
+        else:
+            print(f"❌ Ошибка загрузки в Google Drive: {filename}")
+            
+    except Exception as e:
+        print(f"❌ Ошибка загрузки в Google Drive: {e}")
+
+def get_google_drive_mockups(limit: int = 50) -> list:
+    """Получает список мокапов из Google Drive"""
+    if not GOOGLE_DRIVE_ENABLED:
+        return []
+    
+    try:
+        from google_drive_client import get_drive_client
+        
+        # Получаем клиент Google Drive
+        drive_client = get_drive_client()
+        if not drive_client:
+            return []
+        
+        # Получаем список мокапов
+        mockups = drive_client.get_mockups_list(limit)
+        
+        # Преобразуем в формат для галереи
+        gallery_mockups = []
+        for mockup in mockups:
+            # Скачиваем изображение
+            image_data = drive_client.download_mockup(mockup['id'])
+            if image_data:
+                gallery_mockups.append({
+                    'image_file': mockup['filename'],
+                    'image_path': f"drive_{mockup['id']}",
+                    'cache_key': mockup['id'],
+                    'metadata': mockup['metadata'],
+                    'created_time': datetime.fromisoformat(mockup['created_time'].replace('Z', '+00:00')).timestamp(),
+                    'source': 'google_drive',
+                    'image_data': base64.b64encode(image_data).decode('utf-8'),
+                    'drive_id': mockup['id']
+                })
+        
+        return gallery_mockups
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения мокапов из Google Drive: {e}")
+        return []
 
 if __name__ == "__main__":
     main()

@@ -34,6 +34,10 @@ config = get_config()
 GEMINI_API_KEY = config['GEMINI_API_KEY']
 AUTH_ENABLED = config['AUTH_ENABLED']
 AUTH_PASSWORD = config['AUTH_PASSWORD']
+
+# Google Drive настройки
+GOOGLE_DRIVE_ENABLED = config.get('GOOGLE_DRIVE_ENABLED', 'false').lower() == 'true'
+GOOGLE_DRIVE_FOLDER_NAME = config.get('GOOGLE_DRIVE_FOLDER_NAME', 'AI Mockup Generator')
 GEMINI_MODEL = 'gemini-2.5-flash-image-preview'  # Официальная модель для генерации изображений
 GEMINI_ANALYSIS_MODEL = 'gemini-2.0-flash-exp'  # Современная модель для анализа коллекций
 
