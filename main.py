@@ -1636,6 +1636,104 @@ def gallery_page():
     st.markdown("# 🖼️ Галерея мокапов")
     st.markdown("Просмотр всех сгенерированных мокапов")
     
+    # Кнопка для переключения на оптимизированную галерею
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("🚀 Оптимизированная галерея", help="Быстрая галерея с кэшированием"):
+            st.session_state['use_optimized_gallery'] = True
+            st.rerun()
+    
+    # Проверяем, нужно ли использовать оптимизированную галерею
+    if st.session_state.get('use_optimized_gallery', False):
+        try:
+            from optimized_gallery import get_optimized_gallery
+            gallery = get_optimized_gallery()
+            
+            # Получаем все мокапы с кэшированием
+            with st.spinner("🔄 Загрузка мокапов..."):
+                all_mockups_data = gallery.get_all_mockups(limit=100)
+            
+            if not all_mockups_data:
+                st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+                return
+            
+            # Получаем опции для фильтров
+            styles, applications = gallery.get_filter_options(all_mockups_data)
+            
+            # Фильтры
+            st.markdown("### 🔍 Фильтры")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                selected_style = st.selectbox(
+                    "Стиль мокапа:",
+                    ["Все"] + styles,
+                    index=0
+                )
+            
+            with col2:
+                selected_application = st.selectbox(
+                    "Тип нанесения:",
+                    ["Все"] + applications,
+                    index=0
+                )
+            
+            with col3:
+                date_filter = st.selectbox(
+                    "Период:",
+                    ["Все", "Сегодня", "За неделю", "За месяц"],
+                    index=0
+                )
+            
+            # Применяем фильтры
+            filtered_mockups = gallery.apply_filters(
+                all_mockups_data, 
+                selected_style, 
+                selected_application, 
+                date_filter
+            )
+            
+            # Показываем статистику
+            st.markdown(f"### 📊 Найдено мокапов: {len(filtered_mockups)}")
+            
+            if not filtered_mockups:
+                st.info("🔍 По выбранным фильтрам мокапы не найдены")
+                return
+            
+            # Инициализируем страницу в session_state
+            if 'gallery_page' not in st.session_state:
+                st.session_state['gallery_page'] = 0
+            
+            # Кнопки управления
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if st.button("🔄 Обновить кэш"):
+                    # Очищаем кэш
+                    if 'gallery_cache' in st.session_state:
+                        del st.session_state['gallery_cache']
+                    st.rerun()
+            
+            with col2:
+                if st.button("📊 Статистика"):
+                    show_gallery_statistics(filtered_mockups)
+            
+            with col3:
+                if st.button("⬅️ Обычная галерея"):
+                    st.session_state['use_optimized_gallery'] = False
+                    st.rerun()
+            
+            # Отображаем галерею
+            gallery.display_gallery(filtered_mockups, st.session_state['gallery_page'])
+            return
+            
+        except ImportError as e:
+            st.error(f"Ошибка импорта оптимизированной галереи: {e}")
+            st.info("Используется стандартная галерея")
+        except Exception as e:
+            st.error(f"Ошибка в оптимизированной галерее: {e}")
+            st.info("Используется стандартная галерея")
+    
     # Получаем список всех изображений из outputs и cache
     outputs_dir = "outputs"
     cache_dir = "cache"
@@ -1744,6 +1842,8 @@ def gallery_page():
             st.write(f"**Текущая рабочая директория:** {os.getcwd()}")
             st.write(f"**Проверяемые папки:**")
             st.write(f"- `{outputs_dir}`: {'✅ существует' if os.path.exists(outputs_dir) else '❌ не существует'}")
+            # Определяем cache_images_dir для отладки
+            cache_images_dir = os.path.join(cache_dir, "images")
             st.write(f"- `{cache_images_dir}`: {'✅ существует' if os.path.exists(cache_images_dir) else '❌ не существует'}")
             
             if os.path.exists(outputs_dir):
@@ -2222,6 +2322,51 @@ def get_ftp_mockups(limit: int = 50) -> list:
     except Exception as e:
         print(f"❌ Ошибка получения мокапов с FTP: {e}")
         return []
+
+def show_gallery_statistics(mockups: list):
+    """Показывает статистику галереи"""
+    st.markdown("### 📊 Статистика галереи")
+    
+    # Статистика по источникам
+    sources = {}
+    styles = {}
+    applications = {}
+    total_size = 0
+    
+    for mockup in mockups:
+        source = mockup.get('source', 'unknown')
+        sources[source] = sources.get(source, 0) + 1
+        
+        metadata = mockup.get('metadata', {})
+        style = metadata.get('mockup_style', 'Неизвестно')
+        application = metadata.get('logo_application', 'Неизвестно')
+        
+        styles[style] = styles.get(style, 0) + 1
+        applications[application] = applications.get(application, 0) + 1
+        
+        # Размер файла (если доступен)
+        if 'optimized_size' in metadata:
+            total_size += metadata['optimized_size']
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**По источникам:**")
+        for source, count in sources.items():
+            st.write(f"- {source}: {count}")
+        
+        st.markdown("**По стилям:**")
+        for style, count in sorted(styles.items(), key=lambda x: x[1], reverse=True)[:5]:
+            st.write(f"- {style}: {count}")
+    
+    with col2:
+        st.markdown("**По типам нанесения:**")
+        for app, count in sorted(applications.items(), key=lambda x: x[1], reverse=True)[:5]:
+            st.write(f"- {app}: {count}")
+        
+        if total_size > 0:
+            st.markdown("**Общий размер:**")
+            st.write(f"- {total_size / (1024*1024):.2f} MB")
 
 if __name__ == "__main__":
     main()
