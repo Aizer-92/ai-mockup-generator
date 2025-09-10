@@ -10,7 +10,7 @@ echo "📝 Вам потребуется ввести пароль SSH"
 echo ""
 
 # Выполняем все команды одной SSH сессией
-ssh search.headcorn.pro << 'EOF'
+ssh -l victoruk_search search.headcorn.pro << 'EOF'
     echo "📁 Создание папки для мокапов..."
     sudo mkdir -p /var/www/html/mockups
     sudo chmod 755 /var/www/html/mockups

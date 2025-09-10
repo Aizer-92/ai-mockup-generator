@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 
 # Загружаем .env файл для локальной разработки
 load_dotenv()
+# Также загружаем FTP конфигурацию
+load_dotenv('ftp_config.env')
 
 # Функция для получения конфигурации
 def get_config():
@@ -36,20 +38,20 @@ AUTH_ENABLED = config['AUTH_ENABLED']
 AUTH_PASSWORD = config['AUTH_PASSWORD']
 
 # Google Drive настройки
-GOOGLE_DRIVE_ENABLED = config.get('GOOGLE_DRIVE_ENABLED', 'false').lower() == 'true'
-GOOGLE_DRIVE_FOLDER_NAME = config.get('GOOGLE_DRIVE_FOLDER_NAME', 'AI Mockup Generator')
+GOOGLE_DRIVE_ENABLED = os.getenv('GOOGLE_DRIVE_ENABLED', 'false').lower() == 'true'
+GOOGLE_DRIVE_FOLDER_NAME = os.getenv('GOOGLE_DRIVE_FOLDER_NAME', 'AI Mockup Generator')
 
 # Серверное хранилище настройки
-SERVER_STORAGE_ENABLED = config.get('SERVER_STORAGE_ENABLED', 'true').lower() == 'true'
-SERVER_STORAGE_PATH = config.get('SERVER_STORAGE_PATH', 'mockups')
-SERVER_WEB_URL = config.get('SERVER_WEB_URL', 'http://localhost:8501/static/mockups')
+SERVER_STORAGE_ENABLED = os.getenv('SERVER_STORAGE_ENABLED', 'true').lower() == 'true'
+SERVER_STORAGE_PATH = os.getenv('SERVER_STORAGE_PATH', 'mockups')
+SERVER_WEB_URL = os.getenv('SERVER_WEB_URL', 'http://search.headcorn.pro/mockups')
 
 # FTP настройки
-FTP_ENABLED = config.get('FTP_ENABLED', 'true').lower() == 'true'
-FTP_HOST = config.get('FTP_HOST', '')
-FTP_USERNAME = config.get('FTP_USERNAME', '')
-FTP_PASSWORD = config.get('FTP_PASSWORD', '')
-FTP_REMOTE_PATH = config.get('FTP_REMOTE_PATH', '/mockups')
+FTP_ENABLED = os.getenv('FTP_ENABLED', 'true').lower() == 'true'
+FTP_HOST = os.getenv('FTP_HOST', '')
+FTP_USERNAME = os.getenv('FTP_USERNAME', '')
+FTP_PASSWORD = os.getenv('FTP_PASSWORD', '')
+FTP_REMOTE_PATH = os.getenv('FTP_REMOTE_PATH', '/mockups')
 GEMINI_MODEL = 'gemini-2.5-flash-image-preview'  # Официальная модель для генерации изображений
 GEMINI_ANALYSIS_MODEL = 'gemini-2.0-flash-exp'  # Современная модель для анализа коллекций
 
