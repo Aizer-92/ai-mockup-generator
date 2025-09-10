@@ -4,6 +4,8 @@
 """
 import streamlit as st
 import os
+import json
+from datetime import datetime, timedelta
 from PIL import Image
 import time
 from typing import Optional
@@ -146,6 +148,16 @@ def main():
         login_form()
         return
     
+    # Навигация между страницами
+    page = st.sidebar.selectbox(
+        "Выберите страницу:",
+        ["Генерация мокапов", "Галерея мокапов"],
+        index=0
+    )
+    
+    if page == "Галерея мокапов":
+        gallery_page()
+        return
     
     # Основной заголовок
     st.markdown("# AI Mockup Generator")
@@ -1392,6 +1404,202 @@ def display_batch_results(batch_result: dict):
         with st.expander("📁 Пути к файлам"):
             for i, path in enumerate(batch_result["saved_paths"]):
                 st.write(f"{i+1}. {path}")
+
+def gallery_page():
+    """Страница галереи всех сгенерированных мокапов"""
+    
+    st.markdown("# 🖼️ Галерея мокапов")
+    st.markdown("Просмотр всех сгенерированных мокапов")
+    
+    # Получаем список всех изображений из кэша
+    cache_dir = "cache"
+    images_dir = os.path.join(cache_dir, "images")
+    
+    if not os.path.exists(images_dir):
+        st.info("📁 Папка с изображениями пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+        return
+    
+    # Получаем все изображения
+    image_files = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
+    
+    if not image_files:
+        st.info("📁 В папке нет изображений. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+        return
+    
+    # Получаем метаданные для каждого изображения
+    mockups_data = []
+    for image_file in image_files:
+        # Извлекаем cache_key из имени файла
+        cache_key = image_file.split('_')[0]
+        metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
+        
+        metadata = {}
+        if os.path.exists(metadata_file):
+            try:
+                with open(metadata_file, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+            except:
+                pass
+        
+        mockups_data.append({
+            'image_file': image_file,
+            'image_path': os.path.join(images_dir, image_file),
+            'cache_key': cache_key,
+            'metadata': metadata,
+            'created_time': os.path.getctime(os.path.join(images_dir, image_file))
+        })
+    
+    # Сортируем по дате создания (новые сверху)
+    mockups_data.sort(key=lambda x: x['created_time'], reverse=True)
+    
+    # Фильтры
+    st.markdown("### 🔍 Фильтры")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Фильтр по стилю
+        all_styles = set()
+        for mockup in mockups_data:
+            style = mockup['metadata'].get('mockup_style', 'Неизвестно')
+            all_styles.add(style)
+        
+        selected_style = st.selectbox(
+            "Стиль мокапа:",
+            ["Все"] + sorted(list(all_styles)),
+            index=0
+        )
+    
+    with col2:
+        # Фильтр по типу нанесения
+        all_applications = set()
+        for mockup in mockups_data:
+            application = mockup['metadata'].get('logo_application', 'Неизвестно')
+            all_applications.add(application)
+        
+        selected_application = st.selectbox(
+            "Тип нанесения:",
+            ["Все"] + sorted(list(all_applications)),
+            index=0
+        )
+    
+    with col3:
+        # Фильтр по дате
+        date_filter = st.selectbox(
+            "Период:",
+            ["Все", "Сегодня", "За неделю", "За месяц"],
+            index=0
+        )
+    
+    # Применяем фильтры
+    filtered_mockups = mockups_data
+    
+    if selected_style != "Все":
+        filtered_mockups = [m for m in filtered_mockups if m['metadata'].get('mockup_style') == selected_style]
+    
+    if selected_application != "Все":
+        filtered_mockups = [m for m in filtered_mockups if m['metadata'].get('logo_application') == selected_application]
+    
+    if date_filter != "Все":
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        
+        if date_filter == "Сегодня":
+            cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif date_filter == "За неделю":
+            cutoff = now - timedelta(days=7)
+        elif date_filter == "За месяц":
+            cutoff = now - timedelta(days=30)
+        
+        filtered_mockups = [m for m in filtered_mockups if datetime.fromtimestamp(m['created_time']) >= cutoff]
+    
+    # Показываем количество найденных результатов
+    st.markdown(f"### 📊 Найдено мокапов: {len(filtered_mockups)}")
+    
+    if not filtered_mockups:
+        st.info("🔍 По выбранным фильтрам мокапы не найдены")
+        return
+    
+    # Отображаем мокапы в виде плиток
+    st.markdown("### 🖼️ Мокапы")
+    
+    # Настройки отображения
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        images_per_row = st.selectbox("Изображений в ряду:", [2, 3, 4], index=1)
+    
+    # Создаем сетку изображений
+    for i in range(0, len(filtered_mockups), images_per_row):
+        cols = st.columns(images_per_row)
+        
+        for j, col in enumerate(cols):
+            if i + j < len(filtered_mockups):
+                mockup = filtered_mockups[i + j]
+                
+                with col:
+                    # Отображаем изображение
+                    try:
+                        image = Image.open(mockup['image_path'])
+                        st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1}")
+                        
+                        # Метаданные в expander
+                        with st.expander(f"ℹ️ Детали мокапа {i + j + 1}"):
+                            metadata = mockup['metadata']
+                            
+                            # Основная информация
+                            st.write("**Основные параметры:**")
+                            st.write(f"• Стиль: {metadata.get('mockup_style', 'Неизвестно')}")
+                            st.write(f"• Тип нанесения: {metadata.get('logo_application', 'Неизвестно')}")
+                            st.write(f"• Расположение логотипа: {metadata.get('logo_placement', 'Неизвестно')}")
+                            st.write(f"• Размер логотипа: {metadata.get('logo_size', 'Неизвестно')}")
+                            
+                            # Дополнительная информация
+                            if metadata.get('special_requirements'):
+                                st.write(f"**Особые требования:** {metadata['special_requirements']}")
+                            
+                            # Время создания
+                            created_time = datetime.fromtimestamp(mockup['created_time'])
+                            st.write(f"**Создан:** {created_time.strftime('%d.%m.%Y %H:%M')}")
+                            
+                            # Кнопка скачивания
+                            with open(mockup['image_path'], "rb") as file:
+                                st.download_button(
+                                    label="📥 Скачать",
+                                    data=file.read(),
+                                    file_name=mockup['image_file'],
+                                    mime="image/jpeg"
+                                )
+                    
+                    except Exception as e:
+                        st.error(f"Ошибка загрузки изображения: {str(e)}")
+    
+    # Статистика внизу
+    st.markdown("---")
+    st.markdown("### 📈 Статистика")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Всего мокапов", len(mockups_data))
+    
+    with col2:
+        st.metric("Отфильтровано", len(filtered_mockups))
+    
+    with col3:
+        if mockups_data:
+            latest = max(mockups_data, key=lambda x: x['created_time'])
+            latest_time = datetime.fromtimestamp(latest['created_time'])
+            st.metric("Последний мокап", latest_time.strftime('%d.%m.%Y'))
+    
+    with col4:
+        # Размер папки с изображениями
+        total_size = 0
+        for mockup in mockups_data:
+            try:
+                total_size += os.path.getsize(mockup['image_path'])
+            except:
+                pass
+        
+        st.metric("Размер папки", f"{total_size / (1024*1024):.1f} МБ")
 
 if __name__ == "__main__":
     main()
