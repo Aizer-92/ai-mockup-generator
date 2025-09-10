@@ -724,12 +724,44 @@ Generate the mockup image."""
 def display_results(result: dict):
     """Отображение результатов генерации"""
     
+    # Сохраняем результат в session_state для галереи
+    st.session_state.last_result = result
+    
+    # Сохраняем мокапы в session_state для галереи
+    if "generated_mockups" not in st.session_state:
+        st.session_state.generated_mockups = []
+    
     mockups = result.get("mockups", {})
     
     if not mockups:
         st.error("❌ Нет данных о мокапах для отображения")
         st.error(f"Доступные ключи в результате: {list(result.keys())}")
         return
+    
+    # Добавляем новые мокапы в session_state
+    if "gemini_mockups" in mockups:
+        for mockup in mockups["gemini_mockups"]:
+            if "image_data" in mockup:
+                # Создаем запись для галереи
+                gallery_entry = {
+                    "image_data": mockup["image_data"],
+                    "metadata": {
+                        "mockup_style": result.get("style", "Неизвестно"),
+                        "logo_application": result.get("logo_application", "Неизвестно"),
+                        "logo_placement": result.get("logo_position", "Неизвестно"),
+                        "logo_size": result.get("logo_size", "Неизвестно"),
+                        "logo_color": result.get("logo_color", "Неизвестно"),
+                        "product_color": result.get("product_color", "Неизвестно"),
+                        "product_angle": result.get("product_angle", "Неизвестно"),
+                        "special_requirements": result.get("custom_prompt", "")
+                    },
+                    "timestamp": time.time(),
+                    "description": mockup.get("description", "")
+                }
+                
+                # Добавляем в session_state (избегаем дублирования)
+                if gallery_entry not in st.session_state.generated_mockups:
+                    st.session_state.generated_mockups.append(gallery_entry)
     
     # Проверка, использовался ли fallback
     fallback_used = mockups.get("fallback_used", False)
@@ -1472,9 +1504,27 @@ def gallery_page():
                 'source': 'cache'
             })
     
+    # Проверяем session_state на наличие изображений
+    session_mockups = []
+    if "generated_mockups" in st.session_state:
+        for i, mockup_data in enumerate(st.session_state.generated_mockups):
+            if "image_data" in mockup_data:
+                session_mockups.append({
+                    'image_file': f"session_mockup_{i+1}.jpg",
+                    'image_path': f"session_state_{i}",
+                    'cache_key': f"session_{i}",
+                    'metadata': mockup_data.get('metadata', {}),
+                    'created_time': mockup_data.get('timestamp', time.time()),
+                    'source': 'session_state',
+                    'image_data': mockup_data['image_data']
+                })
+    
+    # Объединяем файловые и session_state мокапы
+    all_mockups_data.extend(session_mockups)
+    
     if not all_mockups_data:
         st.info("📁 Папки с изображениями пока пусты. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
-        st.info("💡 Изображения сохраняются в папках `outputs/` и `cache/images/`")
+        st.info("💡 Изображения сохраняются в папках `outputs/` и `cache/images/`, а также в памяти сессии")
         
         # Отладочная информация
         with st.expander("🔍 Отладочная информация"):
@@ -1490,6 +1540,8 @@ def gallery_page():
             if os.path.exists(cache_images_dir):
                 files = os.listdir(cache_images_dir)
                 st.write(f"**Файлы в {cache_images_dir}:** {files}")
+            
+            st.write(f"**Мокапы в session_state:** {len(session_mockups)}")
         
         return
     
@@ -1582,12 +1634,78 @@ def gallery_page():
                 mockup = filtered_mockups[i + j]
                 
                 with col:
-                    # Отображаем изображение
+                    # Отображаем изображение с улучшенной обработкой ошибок
                     try:
-                        image = Image.open(mockup['image_path'])
-                        st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1}")
+                        image = None
+                        file_size = 0
                         
-                        # Метаданные в expander
+                        # Обрабатываем изображения из session_state
+                        if mockup.get('source') == 'session_state' and 'image_data' in mockup:
+                            try:
+                                import base64
+                                import io
+                                image_data = base64.b64decode(mockup['image_data'])
+                                image = Image.open(io.BytesIO(image_data))
+                                file_size = len(image_data)
+                                st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1} (из сессии)")
+                            except Exception as session_error:
+                                st.error(f"❌ Ошибка загрузки изображения из сессии: {str(session_error)}")
+                                continue
+                        
+                        # Обрабатываем файловые изображения
+                        else:
+                            # Проверяем существование файла
+                            if not os.path.exists(mockup['image_path']):
+                                st.warning(f"⚠️ Файл не найден: {mockup['image_file']}")
+                                st.write(f"**Путь:** {mockup['image_path']}")
+                                st.write(f"**Источник:** {mockup.get('source', 'неизвестно')}")
+                                continue
+                            
+                            # Проверяем размер файла
+                            file_size = os.path.getsize(mockup['image_path'])
+                            if file_size == 0:
+                                st.warning(f"⚠️ Файл пустой: {mockup['image_file']}")
+                                continue
+                            
+                            # Пытаемся открыть изображение
+                            try:
+                                image = Image.open(mockup['image_path'])
+                                # Проверяем, что это действительно изображение
+                                image.verify()
+                                
+                                # Если все хорошо, открываем заново для отображения
+                                image = Image.open(mockup['image_path'])
+                                st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1}")
+                                
+                            except Exception as img_error:
+                                st.error(f"❌ Поврежденный файл изображения: {mockup['image_file']}")
+                                st.write(f"**Ошибка:** {str(img_error)}")
+                                st.write(f"**Размер файла:** {file_size} байт")
+                                st.write(f"**Путь:** {mockup['image_path']}")
+                                
+                                # Показываем метаданные даже для поврежденных файлов
+                                with st.expander(f"ℹ️ Детали мокапа {i + j + 1} (файл поврежден)"):
+                                    metadata = mockup['metadata']
+                                    
+                                    # Основная информация
+                                    st.write("**Основные параметры:**")
+                                    st.write(f"• Стиль: {metadata.get('mockup_style', 'Неизвестно')}")
+                                    st.write(f"• Тип нанесения: {metadata.get('logo_application', 'Неизвестно')}")
+                                    st.write(f"• Расположение логотипа: {metadata.get('logo_placement', 'Неизвестно')}")
+                                    st.write(f"• Размер логотипа: {metadata.get('logo_size', 'Неизвестно')}")
+                                    
+                                    # Дополнительная информация
+                                    if metadata.get('special_requirements'):
+                                        st.write(f"**Особые требования:** {metadata['special_requirements']}")
+                                    
+                                    # Время создания
+                                    created_time = datetime.fromtimestamp(mockup['created_time'])
+                                    st.write(f"**Создан:** {created_time.strftime('%d.%m.%Y %H:%M')}")
+                                    
+                                    st.warning("⚠️ Файл изображения поврежден и не может быть отображен")
+                                continue
+                        
+                        # Метаданные в expander для корректных изображений
                         with st.expander(f"ℹ️ Детали мокапа {i + j + 1}"):
                             metadata = mockup['metadata']
                             
@@ -1606,17 +1724,39 @@ def gallery_page():
                             created_time = datetime.fromtimestamp(mockup['created_time'])
                             st.write(f"**Создан:** {created_time.strftime('%d.%m.%Y %H:%M')}")
                             
+                            # Информация о файле
+                            st.write(f"**Файл:** {mockup['image_file']}")
+                            st.write(f"**Размер:** {file_size} байт")
+                            st.write(f"**Источник:** {mockup.get('source', 'неизвестно')}")
+                            
                             # Кнопка скачивания
-                            with open(mockup['image_path'], "rb") as file:
-                                st.download_button(
-                                    label="📥 Скачать",
-                                    data=file.read(),
-                                    file_name=mockup['image_file'],
-                                    mime="image/jpeg"
-                                )
+                            try:
+                                if mockup.get('source') == 'session_state' and 'image_data' in mockup:
+                                    # Скачивание из session_state
+                                    import base64
+                                    image_data = base64.b64decode(mockup['image_data'])
+                                    st.download_button(
+                                        label="📥 Скачать",
+                                        data=image_data,
+                                        file_name=mockup['image_file'],
+                                        mime="image/jpeg"
+                                    )
+                                else:
+                                    # Скачивание из файла
+                                    with open(mockup['image_path'], "rb") as file:
+                                        st.download_button(
+                                            label="📥 Скачать",
+                                            data=file.read(),
+                                            file_name=mockup['image_file'],
+                                            mime="image/jpeg"
+                                        )
+                            except Exception as download_error:
+                                st.error(f"Ошибка скачивания: {str(download_error)}")
                     
                     except Exception as e:
-                        st.error(f"Ошибка загрузки изображения: {str(e)}")
+                        st.error(f"❌ Критическая ошибка: {str(e)}")
+                        st.write(f"**Файл:** {mockup['image_file']}")
+                        st.write(f"**Путь:** {mockup['image_path']}")
     
     # Статистика внизу
     st.markdown("---")
