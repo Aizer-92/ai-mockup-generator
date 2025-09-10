@@ -9,13 +9,14 @@ def test_ftp_connection():
     """Тестирует FTP подключение"""
     print("🔍 Тестирование FTP подключения...")
     
-    # Создаем FTP загрузчик
-    uploader = FTPUploader(
-        host='search.headcorn.pro',
-        username='victoruk_search',
-        password='L2F&A#3zVpCq*T',
-        remote_path='/mockups'
-    )
+    # Получаем FTP загрузчик из конфигурации
+    from ftp_uploader import get_ftp_uploader
+    uploader = get_ftp_uploader()
+    
+    if not uploader:
+        print("❌ Не удалось создать FTP загрузчик")
+        print("📝 Проверьте настройки FTP в .env файле")
+        return False
     
     # Тестируем подключение
     if uploader.test_connection():

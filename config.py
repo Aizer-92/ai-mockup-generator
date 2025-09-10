@@ -46,9 +46,9 @@ SERVER_WEB_URL = config.get('SERVER_WEB_URL', 'http://localhost:8501/static/mock
 
 # FTP настройки
 FTP_ENABLED = config.get('FTP_ENABLED', 'true').lower() == 'true'
-FTP_HOST = config.get('FTP_HOST', 'search.headcorn.pro')
-FTP_USERNAME = config.get('FTP_USERNAME', 'victoruk_search')
-FTP_PASSWORD = config.get('FTP_PASSWORD', 'L2F&A#3zVpCq*T')
+FTP_HOST = config.get('FTP_HOST', '')
+FTP_USERNAME = config.get('FTP_USERNAME', '')
+FTP_PASSWORD = config.get('FTP_PASSWORD', '')
 FTP_REMOTE_PATH = config.get('FTP_REMOTE_PATH', '/mockups')
 GEMINI_MODEL = 'gemini-2.5-flash-image-preview'  # Официальная модель для генерации изображений
 GEMINI_ANALYSIS_MODEL = 'gemini-2.0-flash-exp'  # Современная модель для анализа коллекций

@@ -230,15 +230,17 @@ def get_ftp_uploader() -> Optional[FTPUploader]:
         FTPUploader: Настроенный загрузчик или None
     """
     try:
-        from config import get_config
-        config = get_config()
+        from config import FTP_HOST, FTP_USERNAME, FTP_PASSWORD, FTP_REMOTE_PATH
         
-        ftp_host = config.get('FTP_HOST', 'search.headcorn.pro')
-        ftp_username = config.get('FTP_USERNAME', 'victoruk_search')
-        ftp_password = config.get('FTP_PASSWORD', 'L2F&A#3zVpCq*T')
-        ftp_remote_path = config.get('FTP_REMOTE_PATH', '/mockups')
+        # Проверяем, что все настройки заполнены
+        if not FTP_HOST or not FTP_USERNAME or not FTP_PASSWORD:
+            print("❌ FTP настройки не заполнены. Добавьте в .env:")
+            print("   FTP_HOST=your_ftp_host")
+            print("   FTP_USERNAME=your_username")
+            print("   FTP_PASSWORD=your_password")
+            return None
         
-        uploader = FTPUploader(ftp_host, ftp_username, ftp_password, ftp_remote_path)
+        uploader = FTPUploader(FTP_HOST, FTP_USERNAME, FTP_PASSWORD, FTP_REMOTE_PATH)
         
         # Тестируем подключение
         if uploader.test_connection():

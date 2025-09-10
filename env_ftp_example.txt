@@ -14,7 +14,7 @@ SERVER_WEB_URL=http://localhost:8501/static/mockups
 
 # FTP настройки (ваш сервер)
 FTP_ENABLED=true
-FTP_HOST=search.headcorn.pro
-FTP_USERNAME=victoruk_search
-FTP_PASSWORD=L2F&A#3zVpCq*T
+FTP_HOST=your_ftp_host_here
+FTP_USERNAME=your_ftp_username_here
+FTP_PASSWORD=your_ftp_password_here
 FTP_REMOTE_PATH=/mockups

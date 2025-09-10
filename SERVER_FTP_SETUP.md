@@ -2,10 +2,10 @@
 
 ## Информация о сервере
 
-- **FTP Host**: search.headcorn.pro
-- **Username**: victoruk_search
-- **Password**: L2F&A#3zVpCq*T
-- **Web URL**: http://search.headcorn.pro/
+- **FTP Host**: your_ftp_host_here
+- **Username**: your_ftp_username_here
+- **Password**: your_ftp_password_here
+- **Web URL**: http://your_domain_here/
 
 ## 🚀 Быстрая настройка
 
