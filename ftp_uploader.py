@@ -27,6 +27,95 @@ class FTPUploader:
         self.remote_path = remote_path
         self.web_url = f"http://{host}{remote_path}"
     
+    def _translate_style_name(self, style_name: str) -> str:
+        """Переводит русские названия стилей в английские для имен файлов"""
+        translations = {
+            # Основные стили
+            "Классический": "classic",
+            "Современный": "modern", 
+            "Минималистичный": "minimal",
+            "Винтажный": "vintage",
+            "Ретро": "retro",
+            "Футуристичный": "futuristic",
+            "Элегантный": "elegant",
+            "Спортивный": "sport",
+            "Деловой": "business",
+            "Креативный": "creative",
+            "Люкс": "luxury",
+            "Промышленный": "industrial",
+            "Природный": "natural",
+            "Технологичный": "tech",
+            "Художественный": "artistic",
+            
+            # Типы нанесения
+            "Вышивка": "embroidery",
+            "Печать": "print",
+            "Тиснение": "emboss",
+            "Гравировка": "engraving",
+            "Наклейка": "sticker",
+            "Аппликация": "applique",
+            "Термоперенос": "heat_transfer",
+            "Сублимация": "sublimation",
+            "Шелкография": "silkscreen",
+            "ДТГ": "dtg",
+            "DTG": "dtg",
+            
+            # Расположение
+            "Центр": "center",
+            "Слева": "left",
+            "Справа": "right",
+            "Вверху": "top",
+            "Внизу": "bottom",
+            "Угол": "corner",
+            "Бок": "side",
+            "Спинка": "back",
+            "Перед": "front",
+            
+            # Размеры
+            "Маленький": "small",
+            "Средний": "medium",
+            "Большой": "large",
+            "Очень большой": "xlarge",
+            
+            # Цвета
+            "Белый": "white",
+            "Черный": "black",
+            "Красный": "red",
+            "Синий": "blue",
+            "Зеленый": "green",
+            "Желтый": "yellow",
+            "Оранжевый": "orange",
+            "Фиолетовый": "purple",
+            "Розовый": "pink",
+            "Серый": "gray",
+            "Коричневый": "brown",
+            
+            # Углы
+            "Прямой": "straight",
+            "Под углом": "angled",
+            "3D": "3d",
+            "Объемный": "3d",
+            
+            # Неизвестно
+            "Неизвестно": "unknown",
+            "": "unknown"
+        }
+        
+        # Ищем точное совпадение
+        if style_name in translations:
+            return translations[style_name]
+        
+        # Ищем частичное совпадение
+        for ru_name, en_name in translations.items():
+            if ru_name.lower() in style_name.lower():
+                return en_name
+        
+        # Если ничего не найдено, создаем безопасное имя
+        import re
+        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', style_name)
+        safe_name = safe_name[:20]  # Ограничиваем длину
+        return safe_name if safe_name else "unknown"
+    
     def test_connection(self) -> bool:
         """Тестирует подключение к FTP серверу"""
         try:
@@ -100,10 +189,13 @@ class FTPUploader:
                 temp_file.write(image_data)
                 temp_file_path = temp_file.name
             
-            # Генерируем имя файла
+            # Генерируем имя файла (только английские символы)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             style = metadata.get("mockup_style", "unknown")
-            filename = f"mockup_{timestamp}_{style}.jpg"
+            
+            # Преобразуем русские символы в английские
+            style_translated = self._translate_style_name(style)
+            filename = f"mockup_{timestamp}_{style_translated}.jpg"
             
             # Загружаем изображение
             if self.upload_file(temp_file_path, filename):
