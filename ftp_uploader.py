@@ -25,7 +25,8 @@ class FTPUploader:
         self.username = username
         self.password = password
         self.remote_path = remote_path
-        self.web_url = f"http://{host}{remote_path}"
+        # Веб-доступ через /mockups, а не через полный путь
+        self.web_url = f"http://{host}/mockups"
     
     def _translate_style_name(self, style_name: str) -> str:
         """Переводит русские названия стилей в английские для имен файлов"""

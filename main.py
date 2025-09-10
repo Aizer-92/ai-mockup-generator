@@ -1876,17 +1876,19 @@ def gallery_page():
                             if mockup.get('source') == 'ftp_upload' and 'web_url' in mockup:
                                 try:
                                     import requests
-                                    response = requests.get(mockup['web_url'], timeout=10)
+                                    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                                    response = requests.get(mockup['web_url'], timeout=10, headers=headers)
                                     if response.status_code == 200:
                                         image = Image.open(io.BytesIO(response.content))
                                         st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1} (с сервера)")
                                         file_size = len(response.content)
                                     else:
-                                        st.error(f"❌ Не удалось загрузить изображение с сервера: {mockup['web_url']}")
+                                        # Скрываем недоступные файлы вместо показа ошибки
+                                        print(f"⚠️ Файл недоступен: {mockup['web_url']} (HTTP {response.status_code})")
                                         continue
                                 except Exception as web_error:
-                                    st.error(f"❌ Ошибка загрузки изображения с сервера: {str(web_error)}")
-                                    st.write(f"**URL:** {mockup['web_url']}")
+                                    # Скрываем файлы с ошибками вместо показа ошибки
+                                    print(f"⚠️ Ошибка загрузки: {mockup['web_url']} - {str(web_error)}")
                                     continue
                             
                             # Для локальных файлов
@@ -2184,6 +2186,7 @@ def get_ftp_mockups(limit: int = 50) -> list:
     
     try:
         from ftp_uploader import get_ftp_uploader
+        import requests
         
         # Получаем FTP загрузчик
         uploader = get_ftp_uploader()
@@ -2193,19 +2196,30 @@ def get_ftp_mockups(limit: int = 50) -> list:
         # Получаем список мокапов
         mockups = uploader.list_files()
         
-        # Преобразуем в формат для галереи
+        # Преобразуем в формат для галереи и проверяем веб-доступ
         gallery_mockups = []
         for mockup in mockups[:limit]:
-            gallery_mockups.append({
-                'image_file': mockup['filename'],
-                'image_path': mockup['web_url'],
-                'cache_key': mockup['filename'].replace('.jpg', ''),
-                'metadata': mockup['metadata'],
-                'created_time': time.time(),  # FTP не возвращает время создания
-                'source': 'ftp_upload',
-                'web_url': mockup['web_url']
-            })
+            # Проверяем, что файл доступен через веб
+            try:
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                response = requests.head(mockup['web_url'], timeout=5, headers=headers)
+                if response.status_code == 200:
+                    gallery_mockups.append({
+                        'image_file': mockup['filename'],
+                        'image_path': mockup['web_url'],
+                        'cache_key': mockup['filename'].replace('.jpg', ''),
+                        'metadata': mockup['metadata'],
+                        'created_time': time.time(),  # FTP не возвращает время создания
+                        'source': 'ftp_upload',
+                        'web_url': mockup['web_url']
+                    })
+                else:
+                    print(f"⚠️ Файл недоступен через веб: {mockup['filename']} (HTTP {response.status_code})")
+            except Exception as web_error:
+                print(f"⚠️ Ошибка проверки веб-доступа для {mockup['filename']}: {web_error}")
+                continue
         
+        print(f"✅ Найдено рабочих FTP мокапов: {len(gallery_mockups)}")
         return gallery_mockups
         
     except Exception as e:
