@@ -20,6 +20,37 @@ class ImageProcessor:
         """Создание необходимых директорий"""
         os.makedirs(UPLOAD_DIR, exist_ok=True)
     
+    def convert_to_rgb(self, image: Image.Image, background_color: tuple = (255, 255, 255)) -> Image.Image:
+        """
+        Конвертирует изображение в RGB режим для сохранения в JPEG
+        
+        Args:
+            image: Исходное изображение
+            background_color: Цвет фона для RGBA изображений (по умолчанию белый)
+            
+        Returns:
+            Image.Image: Изображение в RGB режиме
+        """
+        if image.mode == 'RGBA':
+            # Создаем фон указанного цвета
+            background = Image.new('RGB', image.size, background_color)
+            background.paste(image, mask=image.split()[-1])  # Используем альфа-канал как маску
+            return background
+        elif image.mode == 'LA':
+            # Конвертируем LA (Luminance + Alpha) в RGB
+            background = Image.new('RGB', image.size, background_color)
+            background.paste(image, mask=image.split()[-1])
+            return background
+        elif image.mode == 'P':
+            # Конвертируем палитровое изображение
+            return image.convert('RGB')
+        elif image.mode != 'RGB':
+            # Конвертируем любые другие режимы
+            return image.convert('RGB')
+        else:
+            # Уже в RGB режиме
+            return image
+    
     def validate_image(self, image_path: str) -> bool:
         """Валидация изображения"""
         try:

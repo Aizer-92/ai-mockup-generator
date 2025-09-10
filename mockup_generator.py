@@ -166,6 +166,16 @@ class MockupGenerator:
     def _generate_image_hash(self, image: Image.Image) -> str:
         """Генерация хеша изображения"""
         buffer = io.BytesIO()
+        
+        # Убеждаемся, что изображение в RGB режиме для JPEG
+        if image.mode == 'RGBA':
+            # Создаем белый фон для RGBA изображений
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            background.paste(image, mask=image.split()[-1])
+            image = background
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
+        
         image.save(buffer, format='JPEG', quality=95)
         image_bytes = buffer.getvalue()
         
@@ -193,6 +203,15 @@ class MockupGenerator:
                 
                 # Создаем папку outputs если не существует
                 os.makedirs("outputs", exist_ok=True)
+                
+                # Убеждаемся, что изображение в RGB режиме для JPEG
+                if mockup.mode == 'RGBA':
+                    # Создаем белый фон для RGBA изображений
+                    background = Image.new('RGB', mockup.size, (255, 255, 255))
+                    background.paste(mockup, mask=mockup.split()[-1])
+                    mockup = background
+                elif mockup.mode != 'RGB':
+                    mockup = mockup.convert('RGB')
                 
                 # Сохраняем изображение
                 mockup.save(filepath, "JPEG", quality=95)
@@ -232,7 +251,17 @@ class MockupGenerator:
         
         # Сохраняем изображение
         if "image" in mockup_data:
-            mockup_data["image"].save(filepath, "JPEG", quality=95)
+            image = mockup_data["image"]
+            # Убеждаемся, что изображение в RGB режиме для JPEG
+            if image.mode == 'RGBA':
+                # Создаем белый фон для RGBA изображений
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                background.paste(image, mask=image.split()[-1])
+                image = background
+            elif image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            image.save(filepath, "JPEG", quality=95)
         elif "image_data" in mockup_data:
             with open(filepath, "wb") as f:
                 f.write(mockup_data["image_data"])
@@ -263,7 +292,17 @@ class MockupGenerator:
                     filename = f"{cache_key}_{mockup['id']}.jpg"
                     filepath = os.path.join(OUTPUT_DIR, filename)
                     
-                    mockup["image"].save(filepath, "JPEG", quality=95)
+                    image = mockup["image"]
+                    # Убеждаемся, что изображение в RGB режиме для JPEG
+                    if image.mode == 'RGBA':
+                        # Создаем белый фон для RGBA изображений
+                        background = Image.new('RGB', image.size, (255, 255, 255))
+                        background.paste(image, mask=image.split()[-1])
+                        image = background
+                    elif image.mode != 'RGB':
+                        image = image.convert('RGB')
+                    
+                    image.save(filepath, "JPEG", quality=95)
                     saved_paths[mockup["id"]] = filepath
             
             # Сохранение Gemini мокапов (если есть изображения)

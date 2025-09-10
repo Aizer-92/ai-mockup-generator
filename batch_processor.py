@@ -326,7 +326,17 @@ class BatchProcessor:
                         with open(filepath, "wb") as f:
                             f.write(result["mockup"]["image_data"])
                     elif "image" in result["mockup"]:
-                        result["mockup"]["image"].save(filepath, "JPEG", quality=95)
+                        image = result["mockup"]["image"]
+                        # Убеждаемся, что изображение в RGB режиме для JPEG
+                        if image.mode == 'RGBA':
+                            # Создаем белый фон для RGBA изображений
+                            background = Image.new('RGB', image.size, (255, 255, 255))
+                            background.paste(image, mask=image.split()[-1])
+                            image = background
+                        elif image.mode != 'RGB':
+                            image = image.convert('RGB')
+                        
+                        image.save(filepath, "JPEG", quality=95)
                     
                     saved_paths.append(filepath)
                     

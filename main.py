@@ -870,7 +870,18 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                         # Конвертируем PIL Image в bytes
                         import io
                         img_byte_arr = io.BytesIO()
-                        mockup["image"].save(img_byte_arr, format='JPEG')
+                        
+                        image = mockup["image"]
+                        # Убеждаемся, что изображение в RGB режиме для JPEG
+                        if image.mode == 'RGBA':
+                            # Создаем белый фон для RGBA изображений
+                            background = Image.new('RGB', image.size, (255, 255, 255))
+                            background.paste(image, mask=image.split()[-1])
+                            image = background
+                        elif image.mode != 'RGB':
+                            image = image.convert('RGB')
+                        
+                        image.save(img_byte_arr, format='JPEG')
                         img_byte_arr = img_byte_arr.getvalue()
                         
                         st.download_button(
