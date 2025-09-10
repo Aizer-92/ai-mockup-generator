@@ -1872,56 +1872,75 @@ def gallery_page():
                         
                         # Обрабатываем файловые изображения
                         else:
-                            # Проверяем существование файла
-                            if not os.path.exists(mockup['image_path']):
-                                st.warning(f"⚠️ Файл не найден: {mockup['image_file']}")
-                                st.write(f"**Путь:** {mockup['image_path']}")
-                                st.write(f"**Источник:** {mockup.get('source', 'неизвестно')}")
-                                continue
+                            # Для FTP мокапов используем web_url
+                            if mockup.get('source') == 'ftp_upload' and 'web_url' in mockup:
+                                try:
+                                    import requests
+                                    response = requests.get(mockup['web_url'], timeout=10)
+                                    if response.status_code == 200:
+                                        image = Image.open(io.BytesIO(response.content))
+                                        st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1} (с сервера)")
+                                        file_size = len(response.content)
+                                    else:
+                                        st.error(f"❌ Не удалось загрузить изображение с сервера: {mockup['web_url']}")
+                                        continue
+                                except Exception as web_error:
+                                    st.error(f"❌ Ошибка загрузки изображения с сервера: {str(web_error)}")
+                                    st.write(f"**URL:** {mockup['web_url']}")
+                                    continue
                             
-                            # Проверяем размер файла
-                            file_size = os.path.getsize(mockup['image_path'])
-                            if file_size == 0:
-                                st.warning(f"⚠️ Файл пустой: {mockup['image_file']}")
-                                continue
-                            
-                            # Пытаемся открыть изображение
-                            try:
-                                image = Image.open(mockup['image_path'])
-                                # Проверяем, что это действительно изображение
-                                image.verify()
+                            # Для локальных файлов
+                            else:
+                                # Проверяем существование файла
+                                if not os.path.exists(mockup['image_path']):
+                                    st.warning(f"⚠️ Файл не найден: {mockup['image_file']}")
+                                    st.write(f"**Путь:** {mockup['image_path']}")
+                                    st.write(f"**Источник:** {mockup.get('source', 'неизвестно')}")
+                                    continue
                                 
-                                # Если все хорошо, открываем заново для отображения
-                                image = Image.open(mockup['image_path'])
-                                st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1}")
+                                # Проверяем размер файла
+                                file_size = os.path.getsize(mockup['image_path'])
+                                if file_size == 0:
+                                    st.warning(f"⚠️ Файл пустой: {mockup['image_file']}")
+                                    continue
                                 
-                            except Exception as img_error:
-                                st.error(f"❌ Поврежденный файл изображения: {mockup['image_file']}")
-                                st.write(f"**Ошибка:** {str(img_error)}")
-                                st.write(f"**Размер файла:** {file_size} байт")
-                                st.write(f"**Путь:** {mockup['image_path']}")
-                                
-                                # Показываем метаданные даже для поврежденных файлов
-                                with st.expander(f"ℹ️ Детали мокапа {i + j + 1} (файл поврежден)"):
-                                    metadata = mockup['metadata']
+                                # Пытаемся открыть изображение
+                                try:
+                                    image = Image.open(mockup['image_path'])
+                                    # Проверяем, что это действительно изображение
+                                    image.verify()
                                     
-                                    # Основная информация
-                                    st.write("**Основные параметры:**")
-                                    st.write(f"• Стиль: {metadata.get('mockup_style', 'Неизвестно')}")
-                                    st.write(f"• Тип нанесения: {metadata.get('logo_application', 'Неизвестно')}")
-                                    st.write(f"• Расположение логотипа: {metadata.get('logo_placement', 'Неизвестно')}")
-                                    st.write(f"• Размер логотипа: {metadata.get('logo_size', 'Неизвестно')}")
+                                    # Если все хорошо, открываем заново для отображения
+                                    image = Image.open(mockup['image_path'])
+                                    st.image(image, use_column_width=True, caption=f"Мокап {i + j + 1}")
                                     
-                                    # Дополнительная информация
-                                    if metadata.get('special_requirements'):
-                                        st.write(f"**Особые требования:** {metadata['special_requirements']}")
+                                except Exception as img_error:
+                                    st.error(f"❌ Поврежденный файл изображения: {mockup['image_file']}")
+                                    st.write(f"**Ошибка:** {str(img_error)}")
+                                    st.write(f"**Размер файла:** {file_size} байт")
+                                    st.write(f"**Путь:** {mockup['image_path']}")
                                     
-                                    # Время создания
-                                    created_time = datetime.fromtimestamp(mockup['created_time'])
-                                    st.write(f"**Создан:** {created_time.strftime('%d.%m.%Y %H:%M')}")
-                                    
-                                    st.warning("⚠️ Файл изображения поврежден и не может быть отображен")
-                                continue
+                                    # Показываем метаданные даже для поврежденных файлов
+                                    with st.expander(f"ℹ️ Детали мокапа {i + j + 1} (файл поврежден)"):
+                                        metadata = mockup['metadata']
+                                        
+                                        # Основная информация
+                                        st.write("**Основные параметры:**")
+                                        st.write(f"• Стиль: {metadata.get('mockup_style', 'Неизвестно')}")
+                                        st.write(f"• Тип нанесения: {metadata.get('logo_application', 'Неизвестно')}")
+                                        st.write(f"• Расположение логотипа: {metadata.get('logo_placement', 'Неизвестно')}")
+                                        st.write(f"• Размер логотипа: {metadata.get('logo_size', 'Неизвестно')}")
+                                        
+                                        # Дополнительная информация
+                                        if metadata.get('special_requirements'):
+                                            st.write(f"**Особые требования:** {metadata['special_requirements']}")
+                                        
+                                        # Время создания
+                                        created_time = datetime.fromtimestamp(mockup['created_time'])
+                                        st.write(f"**Создан:** {created_time.strftime('%d.%m.%Y %H:%M')}")
+                                        
+                                        st.warning("⚠️ Файл изображения поврежден и не может быть отображен")
+                                    continue
                         
                         # Метаданные в expander для корректных изображений
                         with st.expander(f"ℹ️ Детали мокапа {i + j + 1}"):
