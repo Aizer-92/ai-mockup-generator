@@ -28,11 +28,19 @@ def check_password(password: str) -> bool:
 
 def is_authenticated() -> bool:
     """Проверка, аутентифицирован ли пользователь"""
-    if not AUTH_ENABLED:
-        return True
-    
-    # Простая проверка сессии
-    return st.session_state.get(AUTH_SESSION_KEY, False)
+    try:
+        if not AUTH_ENABLED:
+            return True
+        
+        # Простая проверка сессии
+        return st.session_state.get(AUTH_SESSION_KEY, False)
+    except Exception as e:
+        # Отладочная информация для диагностики
+        print(f"ERROR in is_authenticated: {e}")
+        print(f"AUTH_ENABLED: {AUTH_ENABLED}")
+        print(f"AUTH_SESSION_KEY: {AUTH_SESSION_KEY}")
+        # Возвращаем False в случае ошибки
+        return False
 
 def login_form() -> bool:
     """Отображение формы входа"""
