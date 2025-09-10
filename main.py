@@ -11,7 +11,7 @@ import time
 from typing import Optional
 
 # Импортируем конфигурацию после инициализации Streamlit
-from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST, GOOGLE_DRIVE_ENABLED
+from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST, GOOGLE_DRIVE_ENABLED, SERVER_STORAGE_ENABLED, FTP_ENABLED
 from auth import is_authenticated, login_form, logout_button, require_auth, get_user_info
 from mockup_generator import MockupGenerator
 from batch_processor import BatchProcessor
@@ -771,6 +771,12 @@ def display_results(result: dict):
                 
                 # Загружаем в Google Drive если включено
                 upload_to_google_drive(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
+                
+                # Загружаем на сервер если включено
+                upload_to_server(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
+                
+                # Загружаем на FTP если включено
+                upload_to_ftp(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
     
     # Создаем динамические контейнеры для мокапов
     display_mockups_dynamically(mockups, result)
@@ -1709,16 +1715,32 @@ def gallery_page():
     # Получаем мокапы из Google Drive
     drive_mockups = get_google_drive_mockups(50)
     
+    # Получаем мокапы с сервера
+    server_mockups = get_server_mockups(50)
+    
+    # Получаем мокапы с FTP
+    ftp_mockups = get_ftp_mockups(50)
+    
     # Объединяем все источники мокапов
     all_mockups_data.extend(session_mockups)
     all_mockups_data.extend(drive_mockups)
+    all_mockups_data.extend(server_mockups)
+    all_mockups_data.extend(ftp_mockups)
     
     if not all_mockups_data:
         st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
+        
+        storage_info = []
         if GOOGLE_DRIVE_ENABLED:
-            st.info("💡 Изображения сохраняются в Google Drive, памяти сессии и локальных папках")
-        else:
-            st.info("💡 Изображения сохраняются в памяти сессии и локальных папках")
+            storage_info.append("Google Drive")
+        if SERVER_STORAGE_ENABLED:
+            storage_info.append("серверное хранилище")
+        if FTP_ENABLED:
+            storage_info.append("FTP сервер")
+        storage_info.append("память сессии")
+        
+        if storage_info:
+            st.info(f"💡 Изображения сохраняются в: {', '.join(storage_info)}")
         
         # Отладочная информация
         with st.expander("🔍 Отладочная информация"):
@@ -2056,6 +2078,119 @@ def get_google_drive_mockups(limit: int = 50) -> list:
         
     except Exception as e:
         print(f"❌ Ошибка получения мокапов из Google Drive: {e}")
+        return []
+
+def upload_to_server(image_data: bytes, metadata: dict, description: str = ""):
+    """Загружает мокап на сервер"""
+    if not SERVER_STORAGE_ENABLED:
+        return
+    
+    try:
+        from server_storage import get_server_storage
+        
+        # Получаем хранилище сервера
+        storage = get_server_storage()
+        
+        # Загружаем файл
+        filename = storage.save_mockup(image_data, metadata, description)
+        if filename:
+            print(f"✅ Мокап загружен на сервер: {filename}")
+        else:
+            print(f"❌ Ошибка загрузки на сервер")
+            
+    except Exception as e:
+        print(f"❌ Ошибка загрузки на сервер: {e}")
+
+def get_server_mockups(limit: int = 50) -> list:
+    """Получает список мокапов с сервера"""
+    if not SERVER_STORAGE_ENABLED:
+        return []
+    
+    try:
+        from server_storage import get_server_storage
+        
+        # Получаем хранилище сервера
+        storage = get_server_storage()
+        
+        # Получаем список мокапов
+        mockups = storage.get_mockups_list(limit)
+        
+        # Преобразуем в формат для галереи
+        gallery_mockups = []
+        for mockup in mockups:
+            gallery_mockups.append({
+                'image_file': mockup['filename'],
+                'image_path': mockup['filepath'],
+                'cache_key': mockup['id'],
+                'metadata': mockup['metadata'],
+                'created_time': mockup['created_time'],
+                'source': 'server_storage',
+                'image_data': mockup.get('image_data'),
+                'web_url': mockup.get('web_url')
+            })
+        
+        return gallery_mockups
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения мокапов с сервера: {e}")
+        return []
+
+def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
+    """Загружает мокап на FTP сервер"""
+    if not FTP_ENABLED:
+        return
+    
+    try:
+        from ftp_uploader import get_ftp_uploader
+        
+        # Получаем FTP загрузчик
+        uploader = get_ftp_uploader()
+        if not uploader:
+            return
+        
+        # Загружаем файл
+        filename = uploader.upload_mockup(image_data, metadata, description)
+        if filename:
+            print(f"✅ Мокап загружен на FTP: {filename}")
+        else:
+            print(f"❌ Ошибка загрузки на FTP")
+            
+    except Exception as e:
+        print(f"❌ Ошибка загрузки на FTP: {e}")
+
+def get_ftp_mockups(limit: int = 50) -> list:
+    """Получает список мокапов с FTP сервера"""
+    if not FTP_ENABLED:
+        return []
+    
+    try:
+        from ftp_uploader import get_ftp_uploader
+        
+        # Получаем FTP загрузчик
+        uploader = get_ftp_uploader()
+        if not uploader:
+            return []
+        
+        # Получаем список мокапов
+        mockups = uploader.list_files()
+        
+        # Преобразуем в формат для галереи
+        gallery_mockups = []
+        for mockup in mockups[:limit]:
+            gallery_mockups.append({
+                'image_file': mockup['filename'],
+                'image_path': mockup['web_url'],
+                'cache_key': mockup['filename'].replace('.jpg', ''),
+                'metadata': mockup['metadata'],
+                'created_time': time.time(),  # FTP не возвращает время создания
+                'source': 'ftp_upload',
+                'web_url': mockup['web_url']
+            })
+        
+        return gallery_mockups
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения мокапов с FTP: {e}")
         return []
 
 if __name__ == "__main__":

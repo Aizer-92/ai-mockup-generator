@@ -1,0 +1,20 @@
+# Основные настройки
+GEMINI_API_KEY=your_gemini_api_key_here
+AUTH_ENABLED=true
+AUTH_PASSWORD=your_password_here
+
+# Google Drive (отключено)
+GOOGLE_DRIVE_ENABLED=false
+GOOGLE_DRIVE_FOLDER_NAME=AI Mockup Generator
+
+# Серверное хранилище (локальное)
+SERVER_STORAGE_ENABLED=true
+SERVER_STORAGE_PATH=mockups
+SERVER_WEB_URL=http://localhost:8501/static/mockups
+
+# FTP настройки (ваш сервер)
+FTP_ENABLED=true
+FTP_HOST=search.headcorn.pro
+FTP_USERNAME=victoruk_search
+FTP_PASSWORD=L2F&A#3zVpCq*T
+FTP_REMOTE_PATH=/mockups
