@@ -1644,73 +1644,73 @@ def gallery_page():
     all_image_files = []
     all_mockups_data = []
     
-    # 1. Проверяем папку outputs (основное место сохранения)
-    if os.path.exists(outputs_dir):
-        output_files = [f for f in os.listdir(outputs_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
-        for image_file in output_files:
-            image_path = os.path.join(outputs_dir, image_file)
-            # Извлекаем cache_key из имени файла
-            cache_key = image_file.split('_')[0]
-            metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
-            
-            metadata = {}
-            if os.path.exists(metadata_file):
-                try:
-                    with open(metadata_file, 'r', encoding='utf-8') as f:
-                        metadata = json.load(f)
-                except:
-                    pass
-            
-            all_mockups_data.append({
-                'image_file': image_file,
-                'image_path': image_path,
-                'cache_key': cache_key,
-                'metadata': metadata,
-                'created_time': os.path.getctime(image_path),
-                'source': 'outputs'
-            })
+    # 1. Проверяем папку outputs (временно отключено)
+    # if os.path.exists(outputs_dir):
+    #     output_files = [f for f in os.listdir(outputs_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
+    #     for image_file in output_files:
+    #         image_path = os.path.join(outputs_dir, image_file)
+    #         # Извлекаем cache_key из имени файла
+    #         cache_key = image_file.split('_')[0]
+    #         metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
+    #         
+    #         metadata = {}
+    #         if os.path.exists(metadata_file):
+    #             try:
+    #                 with open(metadata_file, 'r', encoding='utf-8') as f:
+    #                     metadata = json.load(f)
+    #             except:
+    #                 pass
+    #         
+    #         all_mockups_data.append({
+    #             'image_file': image_file,
+    #             'image_path': image_path,
+    #             'cache_key': cache_key,
+    #             'metadata': metadata,
+    #             'created_time': os.path.getctime(image_path),
+    #             'source': 'outputs'
+    #         })
     
-    # 2. Проверяем папку cache/images (дополнительное место)
-    cache_images_dir = os.path.join(cache_dir, "images")
-    if os.path.exists(cache_images_dir):
-        cache_files = [f for f in os.listdir(cache_images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
-        for image_file in cache_files:
-            image_path = os.path.join(cache_images_dir, image_file)
-            # Извлекаем cache_key из имени файла
-            cache_key = image_file.split('_')[0]
-            metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
-            
-            metadata = {}
-            if os.path.exists(metadata_file):
-                try:
-                    with open(metadata_file, 'r', encoding='utf-8') as f:
-                        metadata = json.load(f)
-                except:
-                    pass
-            
-            all_mockups_data.append({
-                'image_file': image_file,
-                'image_path': image_path,
-                'cache_key': cache_key,
-                'metadata': metadata,
-                'created_time': os.path.getctime(image_path),
-                'source': 'cache'
-            })
+    # 2. Проверяем папку cache/images (временно отключено)
+    # cache_images_dir = os.path.join(cache_dir, "images")
+    # if os.path.exists(cache_images_dir):
+    #     cache_files = [f for f in os.listdir(cache_images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
+    #     for image_file in cache_files:
+    #         image_path = os.path.join(cache_images_dir, image_file)
+    #         # Извлекаем cache_key из имени файла
+    #         cache_key = image_file.split('_')[0]
+    #         metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
+    #         
+    #         metadata = {}
+    #         if os.path.exists(metadata_file):
+    #             try:
+    #                 with open(metadata_file, 'r', encoding='utf-8') as f:
+    #                     metadata = json.load(f)
+    #             except:
+    #                 pass
+    #         
+    #         all_mockups_data.append({
+    #             'image_file': image_file,
+    #             'image_path': image_path,
+    #             'cache_key': cache_key,
+    #             'metadata': metadata,
+    #             'created_time': os.path.getctime(image_path),
+    #             'source': 'cache'
+    #         })
     
-    # Проверяем session_state на наличие изображений
+    # Проверяем session_state на наличие изображений (временно отключено)
     session_mockups = []
-    if "generated_mockups" in st.session_state:
-        for i, mockup_data in enumerate(st.session_state.generated_mockups):
-            if "image_data" in mockup_data:
-                session_mockups.append({
-                    'image_file': f"session_mockup_{i+1}.jpg",
-                    'image_path': f"session_state_{i}",
-                    'cache_key': f"session_{i}",
-                    'metadata': mockup_data.get('metadata', {}),
-                    'created_time': mockup_data.get('timestamp', time.time()),
-                    'source': 'session_state',
-                    'image_data': mockup_data['image_data']
-                })
+    # if "generated_mockups" in st.session_state:
+    #     for i, mockup_data in enumerate(st.session_state.generated_mockups):
+    #         if "image_data" in mockup_data:
+    #             session_mockups.append({
+    #                 'image_file': f"session_mockup_{i+1}.jpg",
+    #                 'image_path': f"session_state_{i}",
+    #                 'cache_key': f"session_{i}",
+    #                 'metadata': mockup_data.get('metadata', {}),
+    #                 'created_time': mockup_data.get('timestamp', time.time()),
+    #                 'source': 'session_state',
+    #                 'image_data': mockup_data['image_data']
+    #             })
     
     # Получаем мокапы из Google Drive
     drive_mockups = get_google_drive_mockups(50)
@@ -1721,10 +1721,7 @@ def gallery_page():
     # Получаем мокапы с FTP
     ftp_mockups = get_ftp_mockups(50)
     
-    # Объединяем все источники мокапов
-    all_mockups_data.extend(session_mockups)
-    all_mockups_data.extend(drive_mockups)
-    all_mockups_data.extend(server_mockups)
+    # Объединяем только FTP мокапы (остальные временно отключены)
     all_mockups_data.extend(ftp_mockups)
     
     if not all_mockups_data:
