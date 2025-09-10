@@ -37,9 +37,9 @@ GEMINI_API_KEY = config['GEMINI_API_KEY']
 AUTH_ENABLED = config['AUTH_ENABLED']
 AUTH_PASSWORD = config['AUTH_PASSWORD']
 
-# Google Drive настройки
-GOOGLE_DRIVE_ENABLED = os.getenv('GOOGLE_DRIVE_ENABLED', 'false').lower() == 'true'
-GOOGLE_DRIVE_FOLDER_NAME = os.getenv('GOOGLE_DRIVE_FOLDER_NAME', 'AI Mockup Generator')
+# Google Drive настройки (отключены)
+GOOGLE_DRIVE_ENABLED = False
+GOOGLE_DRIVE_FOLDER_NAME = 'AI Mockup Generator'
 
 # Серверное хранилище настройки
 SERVER_STORAGE_ENABLED = os.getenv('SERVER_STORAGE_ENABLED', 'true').lower() == 'true'
