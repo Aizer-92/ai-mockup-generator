@@ -159,6 +159,8 @@ def main():
         )
         # Очищаем параметры после обработки
         del st.session_state.regenerate_params
+        # Принудительно обновляем страницу
+        st.rerun()
         return
     
     # Главная страница генерации мокапов
@@ -592,6 +594,7 @@ def display_results(result: dict):
     
     # Сохраняем результат в session_state для галереи
     st.session_state.last_result = result
+    st.session_state.last_generation_result = result
     
     # Сохраняем мокапы в session_state для галереи
     if "generated_mockups" not in st.session_state:
@@ -659,8 +662,8 @@ def display_results(result: dict):
 def display_mockups_dynamically(mockups: dict, result: dict):
     """Динамическое отображение мокапов с возможностью обновления"""
     
-    # Проверяем, что mockups не пустой
-    if not mockups:
+    # Проверяем, что mockups не пустой и содержит gemini_mockups
+    if not mockups or "gemini_mockups" not in mockups or not mockups["gemini_mockups"]:
         st.error("❌ Критическая ошибка: 'mockups'")
         st.info("Попробуйте перезагрузить страницу или проверить изображения")
         
@@ -870,6 +873,7 @@ def regenerate_mockup_dynamically(mockup_index: int, original_mockup: dict, orig
                     
                     # Обновляем session_state
                     st.session_state.last_result = original_result
+                    st.session_state.last_generation_result = original_result
                     
                     # Обновляем статус
                     status_text.text("🎉 Мокап успешно пересоздан!")
