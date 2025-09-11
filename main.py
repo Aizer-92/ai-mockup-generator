@@ -184,7 +184,7 @@ def main():
     st.markdown("### Режим работы")
     
     # Создаем кнопки-переключатели
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         single_type = "primary" if st.session_state.get('mode', 'single') == 'single' else "secondary"
@@ -198,14 +198,22 @@ def main():
             st.session_state.mode = 'batch'
             st.rerun()
     
+    with col3:
+        creative_type = "primary" if st.session_state.get('mode', 'single') == 'creative' else "secondary"
+        if st.button("Креативный генератор", key="creative_mode", use_container_width=True, type=creative_type):
+            st.session_state.mode = 'creative'
+            st.rerun()
+    
     # Определяем режим
-    mode = 'single' if st.session_state.get('mode', 'single') == 'single' else 'batch'
+    mode = st.session_state.get('mode', 'single')
     
     # Показываем соответствующий интерфейс
     if mode == 'single':
         single_generation_interface()
-    else:
+    elif mode == 'batch':
         batch_processing_interface()
+    else:
+        creative_generation_interface()
 
 def single_generation_interface():
     """Интерфейс для одиночной генерации мокапов"""
@@ -967,6 +975,289 @@ def update_mockup_display(mockup_index: int, new_mockup: dict, result: dict, con
     # Информация о результате
     st.info(f"Источник: {result.get('source', 'unknown')} | "
             f"Время обработки: {result.get('processing_time', 0):.2f}с")
+
+def creative_generation_interface():
+    """Интерфейс для креативного генератора концепций"""
+    
+    st.markdown("### Креативный генератор концепций")
+    st.markdown("Создайте 5 уникальных концепций товара на основе логотипа и брендбука")
+    
+    # Три колонки для загрузки файлов
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Товар**")
+        product_image = st.file_uploader(
+            "Загрузите фотографию товара",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="creative_product_image",
+            help="Фотография товара для создания концепций"
+        )
+        
+        if product_image:
+            # Конвертируем RGBA в RGB если нужно
+            from PIL import Image
+            import io
+            image = Image.open(product_image)
+            if image.mode in ['RGBA', 'LA', 'P']:
+                from image_processor import ImageProcessor
+                processor = ImageProcessor()
+                image = processor.convert_to_rgb(image)
+            
+            # Сохраняем в session_state
+            st.session_state.creative_product_image = image
+            st.image(image, caption="Товар", use_column_width=True)
+    
+    with col2:
+        st.markdown("**Логотип**")
+        logo_image = st.file_uploader(
+            "Загрузите логотип",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            key="creative_logo_image",
+            help="Логотип для интеграции в концепции"
+        )
+        
+        if logo_image:
+            # Конвертируем RGBA в RGB если нужно
+            from PIL import Image
+            import io
+            image = Image.open(logo_image)
+            if image.mode in ['RGBA', 'LA', 'P']:
+                from image_processor import ImageProcessor
+                processor = ImageProcessor()
+                image = processor.convert_to_rgb(image)
+            
+            # Сохраняем в session_state
+            st.session_state.creative_logo_image = image
+            st.image(image, caption="Логотип", use_column_width=True)
+    
+    with col3:
+        st.markdown("**Брендбук**")
+        brandbook_files = st.file_uploader(
+            "Загрузите брендбук (PDF или изображения)",
+            type=['pdf', 'jpg', 'jpeg', 'png', 'webp'],
+            key="creative_brandbook",
+            accept_multiple_files=True,
+            help="PDF файл или изображения с брендбуком"
+        )
+        
+        if brandbook_files:
+            # Сохраняем файлы в session_state
+            st.session_state.creative_brandbook = brandbook_files
+            st.success(f"Загружено файлов: {len(brandbook_files)}")
+    
+    # Дополнительное описание
+    st.markdown("---")
+    st.markdown("### Дополнительные требования")
+    custom_prompt = st.text_area(
+        "Дополнительное описание концепций",
+        placeholder="Опишите дополнительные требования к концепциям...",
+        key="creative_custom_prompt",
+        help="Дополнительные требования, которые будут добавлены к каждому промпту"
+    )
+    
+    # Кнопка генерации
+    st.markdown("---")
+    if st.button("Сгенерировать концепции", key="creative_generate", use_container_width=True, type="primary"):
+        if not st.session_state.get('creative_product_image') or not st.session_state.get('creative_logo_image'):
+            st.error("❌ Пожалуйста, загрузите товар и логотип")
+            return
+        
+        if not st.session_state.get('creative_brandbook'):
+            st.error("❌ Пожалуйста, загрузите брендбук")
+            return
+        
+        # Генерируем концепции
+        generate_creative_concepts()
+
+def generate_creative_concepts():
+    """Генерирует 5 креативных концепций товара"""
+    
+    st.info("Анализируем брендбук и создаем концепции...")
+    
+    try:
+        # Получаем данные
+        product_image = st.session_state.creative_product_image
+        logo_image = st.session_state.creative_logo_image
+        brandbook_files = st.session_state.creative_brandbook
+        custom_prompt = st.session_state.get('creative_custom_prompt', '')
+        
+        # Создаем промпт для анализатора
+        analysis_prompt = f"""
+        Проанализируй предоставленные файлы брендбука и создай 5 уникальных концепций для товара.
+        
+        Требования к концепциям:
+        - Должны быть реалистичными и не требовать сложного исполнения
+        - Должны быть современными и дизайнерскими
+        - Должны интегрировать логотип в товар
+        - Не должны изменять сам товар, только добавлять элементы дизайна
+        - Каждая концепция должна быть уникальной и отличаться от других
+        
+        Дополнительные требования: {custom_prompt}
+        
+        Верни 5 промптов для создания концепций, каждый на отдельной строке, начинающейся с номера (1., 2., 3., 4., 5.)
+        """
+        
+        # Отправляем в анализатор (пока используем Gemini)
+        from gemini_client import GeminiClient
+        gemini_client = GeminiClient()
+        
+        # Подготавливаем файлы для анализа
+        files_to_analyze = []
+        
+        # Добавляем изображения товара и логотипа
+        files_to_analyze.append({
+            'data': product_image,
+            'mime_type': 'image/jpeg',
+            'name': 'product.jpg'
+        })
+        
+        files_to_analyze.append({
+            'data': logo_image,
+            'mime_type': 'image/jpeg', 
+            'name': 'logo.jpg'
+        })
+        
+        # Добавляем файлы брендбука
+        for i, file in enumerate(brandbook_files):
+            if file.type == 'application/pdf':
+                files_to_analyze.append({
+                    'data': file,
+                    'mime_type': 'application/pdf',
+                    'name': f'brandbook_{i}.pdf'
+                })
+            else:
+                # Конвертируем изображения в RGB если нужно
+                from PIL import Image
+                import io
+                image = Image.open(file)
+                if image.mode in ['RGBA', 'LA', 'P']:
+                    from image_processor import ImageProcessor
+                    processor = ImageProcessor()
+                    image = processor.convert_to_rgb(image)
+                
+                # Конвертируем в bytes
+                buffer = io.BytesIO()
+                image.save(buffer, format='JPEG', quality=95)
+                files_to_analyze.append({
+                    'data': buffer.getvalue(),
+                    'mime_type': 'image/jpeg',
+                    'name': f'brandbook_{i}.jpg'
+                })
+        
+        # Получаем концепции от анализатора
+        concepts_response = gemini_client.generate_with_files(analysis_prompt, files_to_analyze)
+        
+        if not concepts_response or not concepts_response.strip():
+            st.error("❌ Не удалось получить концепции от анализатора")
+            return
+        
+        # Парсим концепции
+        concepts = []
+        lines = concepts_response.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and (line.startswith('1.') or line.startswith('2.') or line.startswith('3.') or 
+                        line.startswith('4.') or line.startswith('5.')):
+                # Убираем номер
+                concept = line.split('.', 1)[1].strip()
+                concepts.append(concept)
+        
+        if len(concepts) < 5:
+            st.warning(f"⚠️ Получено только {len(concepts)} концепций вместо 5")
+        
+        # Показываем концепции
+        st.markdown("### Сгенерированные концепции")
+        for i, concept in enumerate(concepts[:5], 1):
+            with st.expander(f"Концепция {i}", expanded=True):
+                st.write(concept)
+        
+        # Генерируем изображения для каждой концепции
+        st.markdown("### Генерация изображений концепций")
+        
+        # Получаем генератор мокапов
+        from mockup_generator import MockupGenerator
+        generator = MockupGenerator()
+        
+        # Генерируем изображения
+        generated_concepts = []
+        for i, concept in enumerate(concepts[:5], 1):
+            st.info(f"Генерируем концепцию {i}...")
+            
+            # Создаем промпт для генерации
+            generation_prompt = f"""
+            {concept}
+            
+            Создай реалистичный мокап товара с этой концепцией.
+            Интегрируй логотип в дизайн согласно концепции.
+            {custom_prompt}
+            """
+            
+            # Генерируем мокап
+            result = generator.generate_mockup(
+                product_image, logo_image,
+                "modern", "embroidery", generation_prompt,
+                "как на фото", "спереди", "центр", "средний", "как на фото"
+            )
+            
+            if result and "mockups" in result and "gemini_mockups" in result["mockups"]:
+                mockups = result["mockups"]["gemini_mockups"]
+                if mockups:
+                    generated_concepts.append({
+                        'concept': concept,
+                        'mockup': mockups[0],
+                        'index': i
+                    })
+        
+        # Отображаем результаты
+        if generated_concepts:
+            st.markdown("### Результаты генерации")
+            
+            # Создаем контейнеры для динамического обновления
+            if "creative_containers" not in st.session_state:
+                st.session_state.creative_containers = {}
+            
+            for concept_data in generated_concepts:
+                container_key = f"concept_{concept_data['index']}"
+                if container_key not in st.session_state.creative_containers:
+                    st.session_state.creative_containers[container_key] = st.container()
+                
+                with st.session_state.creative_containers[container_key]:
+                    st.markdown(f"#### Концепция {concept_data['index']}")
+                    st.write(concept_data['concept'])
+                    
+                    # Показываем изображение
+                    mockup = concept_data['mockup']
+                    if "image_data" in mockup:
+                        st.image(mockup["image_data"], use_column_width=True)
+                    
+                    # Кнопки действий
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button(f"Скачать концепцию {concept_data['index']}", key=f"download_concept_{concept_data['index']}"):
+                            # Скачиваем изображение
+                            st.download_button(
+                                label="Скачать",
+                                data=mockup["image_data"],
+                                file_name=f"concept_{concept_data['index']}.jpg",
+                                mime="image/jpeg",
+                                key=f"download_concept_{concept_data['index']}_btn"
+                            )
+                    
+                    with col2:
+                        if st.button(f"Перегенерировать концепцию {concept_data['index']}", key=f"regenerate_concept_{concept_data['index']}"):
+                            # Перегенерируем концепцию
+                            st.session_state.regenerate_creative_concept = concept_data['index']
+                            st.rerun()
+                    
+                    st.markdown("---")
+        else:
+            st.error("❌ Не удалось сгенерировать изображения концепций")
+            
+    except Exception as e:
+        st.error(f"❌ Ошибка генерации концепций: {str(e)}")
+        import traceback
+        st.error(f"Детали ошибки: {traceback.format_exc()}")
 
 def batch_processing_interface():
     """Интерфейс для пакетной обработки изображений"""

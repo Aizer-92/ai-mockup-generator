@@ -313,6 +313,71 @@ Generate the mockup image."""
             print(f"Ошибка генерации через Gemini 2.5 Flash: {e}")
             return [{"fallback_needed": True, "error": str(e)}]
     
+    def generate_with_files(self, prompt: str, files: List[Dict]) -> str:
+        """
+        Генерация текста с файлами (для анализа брендбука)
+        
+        Args:
+            prompt: Текстовый промпт
+            files: Список файлов с ключами 'data', 'mime_type', 'name'
+            
+        Returns:
+            str: Ответ от Gemini
+        """
+        try:
+            # Подготавливаем содержимое
+            contents = [prompt]
+            
+            # Добавляем файлы
+            for file_info in files:
+                if file_info['mime_type'].startswith('image/'):
+                    # Для изображений
+                    if hasattr(file_info['data'], 'read'):
+                        # Если это файловый объект
+                        image_data = file_info['data'].read()
+                    else:
+                        # Если это bytes
+                        image_data = file_info['data']
+                    
+                    # Конвертируем в base64
+                    image_b64 = base64.b64encode(image_data).decode('utf-8')
+                    contents.append({
+                        "inline_data": {
+                            "mime_type": file_info['mime_type'],
+                            "data": image_b64
+                        }
+                    })
+                elif file_info['mime_type'] == 'application/pdf':
+                    # Для PDF файлов
+                    if hasattr(file_info['data'], 'read'):
+                        pdf_data = file_info['data'].read()
+                    else:
+                        pdf_data = file_info['data']
+                    
+                    pdf_b64 = base64.b64encode(pdf_data).decode('utf-8')
+                    contents.append({
+                        "inline_data": {
+                            "mime_type": file_info['mime_type'],
+                            "data": pdf_b64
+                        }
+                    })
+            
+            # Отправляем запрос
+            response = self.client.models.generate_content(
+                model=GEMINI_ANALYSIS_MODEL,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                    max_output_tokens=2048
+                )
+            )
+            
+            return response.text
+            
+        except Exception as e:
+            print(f"❌ Ошибка генерации с файлами: {e}")
+            return ""
+
     def generate_mockup_with_analysis(self, product_image: Image.Image, logo_image: Image.Image, 
                                     analysis_recommendations: Dict, custom_prompt: str = "", 
                                     pattern_image: Optional[Image.Image] = None) -> List[Dict]:
