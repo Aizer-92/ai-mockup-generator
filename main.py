@@ -148,16 +148,7 @@ def main():
         login_form()
         return
     
-    # Навигация между страницами
-    page = st.sidebar.selectbox(
-        "Выберите страницу:",
-        ["Генерация мокапов", "Галерея мокапов"],
-        index=0
-    )
-    
-    if page == "Галерея мокапов":
-        gallery_page()
-        return
+    # Главная страница генерации мокапов
     
     # Основной заголовок
     st.markdown("# AI Mockup Generator")
@@ -1679,101 +1670,6 @@ def display_batch_results(batch_result: dict):
             for i, path in enumerate(batch_result["saved_paths"]):
                 st.write(f"{i+1}. {path}")
 
-def gallery_page():
-    """Страница галереи всех сгенерированных мокапов"""
-    
-    st.markdown("# 🖼️ Галерея мокапов")
-    st.markdown("Просмотр всех сгенерированных мокапов")
-    
-    # Используем оптимизированную галерею по умолчанию
-    try:
-        from optimized_gallery import get_optimized_gallery
-        gallery = get_optimized_gallery()
-        
-        # Получаем все мокапы с кэшированием
-        with st.spinner("🔄 Загрузка мокапов..."):
-            all_mockups_data = gallery.get_all_mockups(limit=100)
-            
-        if not all_mockups_data:
-            st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
-            return
-        
-        # Получаем опции для фильтров
-        styles, applications = gallery.get_filter_options(all_mockups_data)
-        
-        # Фильтры
-        st.markdown("### 🔍 Фильтры")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            selected_style = st.selectbox(
-                "Стиль мокапа:",
-                ["Все"] + styles,
-                index=0
-            )
-        
-        with col2:
-            selected_application = st.selectbox(
-                "Тип нанесения:",
-                ["Все"] + applications,
-                index=0
-            )
-        
-        with col3:
-            date_filter = st.selectbox(
-                "Период:",
-                ["Все", "Сегодня", "За неделю", "За месяц"],
-                index=0
-            )
-        
-        # Применяем фильтры
-        filtered_mockups = gallery.apply_filters(
-            all_mockups_data, 
-            selected_style, 
-            selected_application, 
-            date_filter
-        )
-        
-        # Показываем статистику
-        st.markdown(f"### 📊 Найдено мокапов: {len(filtered_mockups)}")
-        
-        if not filtered_mockups:
-            st.info("🔍 По выбранным фильтрам мокапы не найдены")
-            return
-        
-        # Инициализируем страницу в session_state
-        if 'gallery_page' not in st.session_state:
-            st.session_state['gallery_page'] = 0
-        
-        # Пагинация
-        items_per_page = 6
-        total_pages = (len(filtered_mockups) - 1) // items_per_page + 1
-        
-        if total_pages > 1:
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                page = st.selectbox(
-                    "Страница:",
-                    range(total_pages),
-                    index=st.session_state['gallery_page'],
-                    format_func=lambda x: f"Страница {x + 1} из {total_pages}"
-                )
-                st.session_state['gallery_page'] = page
-        
-        # Отображаем галерею
-        gallery.display_gallery(filtered_mockups, st.session_state['gallery_page'])
-        return
-        
-    except ImportError as e:
-        st.error(f"Ошибка импорта оптимизированной галереи: {e}")
-        st.info("Попробуйте перезагрузить страницу")
-    except Exception as e:
-        st.error(f"Ошибка в оптимизированной галерее: {e}")
-        st.info("Попробуйте перезагрузить страницу")
-    
-    # Если оптимизированная галерея не работает, показываем сообщение об ошибке
-    st.error("❌ Не удалось загрузить галерею мокапов")
-    st.info("Попробуйте перезагрузить страницу или обратитесь к администратору")
 
 def upload_to_google_drive(image_data: bytes, metadata: dict, description: str = ""):
     """Google Drive отключен"""
