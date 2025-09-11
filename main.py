@@ -997,14 +997,17 @@ def creative_generation_interface():
         if product_image:
             # Конвертируем RGBA в RGB если нужно
             from PIL import Image
+            import io
             image = Image.open(product_image)
             if image.mode in ['RGBA', 'LA', 'P']:
                 from image_processor import ImageProcessor
                 processor = ImageProcessor()
                 image = processor.convert_to_rgb(image)
             
-            # Сохраняем в session_state как в одиночной обработке
-            st.session_state.creative_product_image = image
+            # Сохраняем как bytes в session_state
+            buffer = io.BytesIO()
+            image.save(buffer, format='JPEG', quality=95)
+            st.session_state.creative_product_image = buffer.getvalue()
             st.image(image, caption="Товар", use_column_width=True)
     
     with col2:
@@ -1019,14 +1022,17 @@ def creative_generation_interface():
         if logo_image:
             # Конвертируем RGBA в RGB если нужно
             from PIL import Image
+            import io
             image = Image.open(logo_image)
             if image.mode in ['RGBA', 'LA', 'P']:
                 from image_processor import ImageProcessor
                 processor = ImageProcessor()
                 image = processor.convert_to_rgb(image)
             
-            # Сохраняем в session_state как в одиночной обработке
-            st.session_state.creative_logo_image = image
+            # Сохраняем как bytes в session_state
+            buffer = io.BytesIO()
+            image.save(buffer, format='JPEG', quality=95)
+            st.session_state.creative_logo_image = buffer.getvalue()
             st.image(image, caption="Логотип", use_column_width=True)
     
     with col3:
@@ -1075,10 +1081,16 @@ def generate_creative_concepts():
     
     try:
         # Получаем данные
-        product_image = st.session_state.creative_product_image
-        logo_image = st.session_state.creative_logo_image
+        product_image_bytes = st.session_state.creative_product_image
+        logo_image_bytes = st.session_state.creative_logo_image
         brandbook_files = st.session_state.creative_brandbook
         custom_prompt = st.session_state.get('creative_custom_prompt', '')
+        
+        # Конвертируем bytes в PIL Image
+        from PIL import Image
+        import io
+        product_image = Image.open(io.BytesIO(product_image_bytes))
+        logo_image = Image.open(io.BytesIO(logo_image_bytes))
         
         # Создаем промпт для анализатора
         analysis_prompt = f"""
@@ -1104,24 +1116,14 @@ def generate_creative_concepts():
         files_to_analyze = []
         
         # Добавляем изображения товара и логотипа
-        # Конвертируем PIL Image в bytes для отправки
-        from PIL import Image
-        import io
-        
-        # Товар
-        product_buffer = io.BytesIO()
-        product_image.save(product_buffer, format='JPEG', quality=95)
         files_to_analyze.append({
-            'data': product_buffer.getvalue(),
+            'data': product_image_bytes,
             'mime_type': 'image/jpeg',
             'name': 'product.jpg'
         })
         
-        # Логотип
-        logo_buffer = io.BytesIO()
-        logo_image.save(logo_buffer, format='JPEG', quality=95)
         files_to_analyze.append({
-            'data': logo_buffer.getvalue(),
+            'data': logo_image_bytes,
             'mime_type': 'image/jpeg', 
             'name': 'logo.jpg'
         })
