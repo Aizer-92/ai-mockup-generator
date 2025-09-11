@@ -171,13 +171,25 @@ class OptimizedGallery:
         """Отображает карточку мокапа"""
         with col:
             try:
-                # Отображаем изображение
-                st.image(
-                    mockup['web_url'],
-                    caption=mockup['filename'],
-                    use_column_width=True,
-                    width=200
-                )
+                # Загружаем изображение локально для отображения
+                image_data = self._load_image_data(mockup)
+                
+                if image_data:
+                    # Отображаем изображение из байтов
+                    st.image(
+                        image_data,
+                        caption=mockup['filename'],
+                        use_column_width=True,
+                        width=200
+                    )
+                else:
+                    # Fallback - показываем URL
+                    st.image(
+                        mockup['web_url'],
+                        caption=mockup['filename'],
+                        use_column_width=True,
+                        width=200
+                    )
                 
                 # Метаданные
                 metadata = mockup.get('metadata', {})
@@ -188,13 +200,55 @@ class OptimizedGallery:
                 st.caption(f"**Нанесение:** {application}")
                 st.caption(f"**Источник:** {mockup['source']}")
                 
-                # Кнопка удаления
-                if st.button("🗑️", key=f"delete_{mockup['id']}", help="Удалить мокап"):
-                    self._delete_mockup(mockup)
-                    st.rerun()
+                # Кнопки управления
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Кнопка скачивания
+                    if image_data:
+                        st.download_button(
+                            "📥 Скачать",
+                            data=image_data,
+                            file_name=mockup['filename'],
+                            mime="image/jpeg",
+                            key=f"download_{mockup['id']}",
+                            use_container_width=True
+                        )
+                
+                with col2:
+                    # Кнопка удаления
+                    if st.button("🗑️", key=f"delete_{mockup['id']}", help="Удалить мокап", use_container_width=True):
+                        self._delete_mockup(mockup)
+                        st.rerun()
                     
             except Exception as e:
                 st.error(f"Ошибка отображения мокапа: {e}")
+                # Показываем информацию о мокапе даже при ошибке
+                st.write(f"**Файл:** {mockup.get('filename', 'N/A')}")
+                st.write(f"**URL:** {mockup.get('web_url', 'N/A')}")
+    
+    def _load_image_data(self, mockup: Dict) -> Optional[bytes]:
+        """Загружает данные изображения для отображения с кэшированием"""
+        try:
+            import requests
+            
+            # Проверяем кэш изображений
+            cache_key = f"image_cache_{mockup['id']}"
+            if cache_key in st.session_state:
+                return st.session_state[cache_key]
+            
+            # Загружаем изображение по URL
+            response = requests.get(mockup['web_url'], timeout=10)
+            if response.status_code == 200:
+                image_data = response.content
+                # Кэшируем изображение
+                st.session_state[cache_key] = image_data
+                return image_data
+            else:
+                return None
+        except Exception as e:
+            print(f"Ошибка загрузки изображения {mockup['filename']}: {e}")
+            return None
     
     def _display_pagination(self, current_page: int, total_pages: int):
         """Отображает пагинацию"""
