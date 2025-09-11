@@ -151,7 +151,7 @@ def main():
     # Главная страница генерации мокапов
     
     # Основной заголовок
-    st.markdown("## AI Mockup Generator")
+    st.markdown("## Headcorn Mockup")
     
     # Информация о пользователе и кнопка выхода в правом верхнем углу
     col1, col2 = st.columns([4, 1])
@@ -249,7 +249,8 @@ def single_generation_interface():
         return
     
     # Разделяем настройки на логические блоки в колонках с фоновым разделением
-    col1, col2, col3 = st.columns(3)
+    with st.expander("⚙️ Настройки", expanded=True):
+        col1, col2, col3 = st.columns(3)
     
     with col1:
         # Блок "Товар" с красивым фоном
@@ -437,7 +438,7 @@ def single_generation_interface():
         col1, col2, col3 = st.columns([1, 2, 1])
         
         with col2:
-            if st.button("Сгенерировать мокапы", type="primary", use_container_width=True):
+            if st.button("Сгенерировать мокап", type="primary", use_container_width=True):
                 with st.spinner("Генерация мокапов..."):
                     try:
                         generator = get_mockup_generator()
@@ -473,17 +474,6 @@ def single_generation_interface():
                             logo_application_key = logo_application_translation.get(logo_application, "embroidery")
                         mockup_style_key = style_translation.get(mockup_style, "modern")
                         
-                        # Отладочная информация
-                        print(f"Mockup style from UI: '{mockup_style}'")
-                        print(f"Product color from UI: '{product_color}'")
-                        print(f"Product angle from UI: '{product_angle}'")
-                        print(f"Logo application from UI: '{custom_application.strip() if custom_application.strip() else logo_application}' -> '{logo_application_key}'")
-                        print(f"Logo position from UI: '{logo_position}'")
-                        print(f"Logo size from UI: '{logo_size}'")
-                        print(f"Logo color from UI: '{logo_color}'")
-                        print(f"Custom prompt from UI: '{custom_prompt}'")
-                        print(f"Logo application type: {type(logo_application)}")
-                        print(f"Logo application repr: {repr(logo_application)}")
                         
                         # Формируем расширенный промпт с дополнительными опциями
                         extended_prompt = custom_prompt
@@ -610,11 +600,6 @@ def single_generation_interface():
                         if result["status"] == "success":
                             st.success(f"✅ Мокапы сгенерированы за {result['processing_time']:.2f} секунд")
                             
-                            # Показываем информацию о сохранении в историю
-                            if "history_paths" in result and result["history_paths"]:
-                                st.info(f"📁 Мокапы сохранены в историю: {len(result['history_paths'])} файлов")
-                                for i, path in enumerate(result["history_paths"]):
-                                    st.write(f"  {i+1}. {path}")
                             
                             # Показываем текстовый ответ от Gemini, если есть
                             if "mockups" in result and result["mockups"]:
@@ -662,10 +647,6 @@ def single_generation_interface():
                     del st.session_state.pattern_image
                 st.rerun()
             
-            # Кнопка очистки кэша (для разработки)
-            if st.button("Обновить кэш", type="secondary", use_container_width=True, help="Очистить кэш модулей (используйте при обновлении кода)"):
-                clear_batch_processor_cache()
-                st.success("Кэш очищен! Перезагрузите страницу.")
     
 
 def display_results(result: dict):
@@ -770,8 +751,6 @@ def display_mockups_dynamically(mockups: dict, result: dict):
         gemini_mockups = mockups["gemini_mockups"]
         
         if gemini_mockups:
-            st.subheader("🤖 AI-мокапы от Gemini 2.5 Flash")
-            
             for i, mockup in enumerate(gemini_mockups):
                 # Создаем уникальный ключ для контейнера
                 container_key = f"mockup_{i}"
@@ -809,7 +788,7 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                                 image_data = img_byte_arr.getvalue()
                             
                             # Увеличенное превью результата для лучшего просмотра
-                            st.image(image, caption=f"AI-мокап {i+1}", use_container_width=True)
+                            st.image(image, use_container_width=True)
                             
                             # Кнопки управления
                             col1, col2 = st.columns(2)
@@ -817,7 +796,7 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             with col1:
                                 # Кнопка скачивания
                                 st.download_button(
-                                    label=f"📥 Скачать AI-мокап {i+1}",
+                                    label="Скачать",
                                     data=image_data,
                                     file_name=f"ai_mockup_{i+1}.jpg",
                                     mime="image/jpeg",
@@ -827,7 +806,7 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             
                             with col2:
                                 # Кнопка пересоздания с динамическим обновлением
-                                if st.button(f"🎨 Перегенерировать мокап {i+1}", key=f"regenerate_{i+1}", use_container_width=True, help="Создать новый мокап с теми же параметрами"):
+                                if st.button(f"Перегенерировать мокап {i+1}", key=f"regenerate_{i+1}", use_container_width=True, help="Создать новый мокап с теми же параметрами"):
                                     regenerate_mockup_dynamically(i, mockup, result, container_key)
                             
                             # Показываем текстовый ответ если есть
@@ -1138,54 +1117,56 @@ def batch_processing_interface():
     st.subheader("Пакетная обработка коллекции")
     st.markdown("Загрузите до 10 фотографий товаров для создания единой коллекции")
     
-    # 1. Загрузка товаров (первым делом)
-    st.markdown('<div class="settings-block batch-products-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-    st.markdown("### 1. Товары для коллекции (до 10 штук)")
-    
-    product_files = st.file_uploader(
-        "Загрузите изображения товаров",
-        type=['jpg', 'jpeg', 'png', 'webp'],
-        accept_multiple_files=True,
-        key="batch_products"
-    )
-    
-    if product_files and len(product_files) > 10:
-        st.error("⚠️ Максимум 10 товаров за раз")
-        product_files = product_files[:10]
-    
-    if product_files:
-        # Конвертируем все изображения в RGB для совместимости с JPEG
-        from image_processor import ImageProcessor
-        processor = ImageProcessor()
-        converted_images = []
-        for f in product_files:
-            img = Image.open(f)
-            if img.mode in ('RGBA', 'LA', 'P'):
-                img = processor.convert_to_rgb(img)
-            converted_images.append(img)
-        st.session_state.batch_product_images = converted_images
-        
-        # Показываем превью товаров
-        st.markdown(f"**Загружено товаров: {len(product_files)}**")
-        
-        # Показываем товары в сетке
-        cols = st.columns(5)  # 5 колонок для превью
-        for i, img in enumerate(st.session_state.batch_product_images):
-            with cols[i % 5]:
-                preview_size = (80, 80)
-                preview_img = img.copy()
-                preview_img.thumbnail(preview_size, Image.LANCZOS)
-                st.image(preview_img, caption=f"Товар {i+1}", width=80)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 2. Загрузка логотипа и паттерна
-    col1, col2 = st.columns(2)
+    # Верстка в 3 столбика как в одиночной обработке
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        # Блок загрузки логотипа с правильным дизайном
+        # Блок загрузки товаров
+        st.markdown('<div class="settings-block batch-products-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
+        st.markdown("### Товары для коллекции")
+        st.markdown("Загрузите до 10 фотографий товаров")
+        
+        product_files = st.file_uploader(
+            "Загрузите изображения товаров",
+            type=['jpg', 'jpeg', 'png', 'webp'],
+            accept_multiple_files=True,
+            key="batch_products"
+        )
+        
+        if product_files and len(product_files) > 10:
+            st.error("⚠️ Максимум 10 товаров за раз")
+            product_files = product_files[:10]
+        
+        if product_files:
+            # Конвертируем все изображения в RGB для совместимости с JPEG
+            from image_processor import ImageProcessor
+            processor = ImageProcessor()
+            converted_images = []
+            for f in product_files:
+                img = Image.open(f)
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = processor.convert_to_rgb(img)
+                converted_images.append(img)
+            st.session_state.batch_product_images = converted_images
+            
+            # Показываем превью товаров
+            st.markdown(f"**Загружено товаров: {len(product_files)}**")
+            
+            # Показываем товары в сетке
+            cols = st.columns(2)  # 2 колонки для превью
+            for i, img in enumerate(st.session_state.batch_product_images):
+                with cols[i % 2]:
+                    preview_size = (60, 60)
+                    preview_img = img.copy()
+                    preview_img.thumbnail(preview_size, Image.LANCZOS)
+                    st.image(preview_img, caption=f"Товар {i+1}", width=60)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        # Блок загрузки логотипа
         st.markdown('<div class="settings-block batch-logo-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-        st.markdown("### 2. Логотип для коллекции")
+        st.markdown("### Логотип для коллекции")
         
         logo_file = st.file_uploader(
             "Загрузите логотип клиента",
@@ -1211,13 +1192,14 @@ def batch_processing_interface():
         
         st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        # Блок загрузки паттерна с правильным дизайном
-        st.markdown('<div class="settings-block batch-pattern-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-        st.markdown("### 3. Паттерн (опционально)")
+    with col3:
+        # Блок дополнительных настроек
+        st.markdown('<div class="settings-block batch-additional-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
+        st.markdown("### Дополнительно")
         
+        # Паттерн (опционально)
         pattern_file = st.file_uploader(
-            "Загрузите паттерн для коллекции",
+            "Паттерн (опционально)",
             type=['jpg', 'jpeg', 'png', 'webp'],
             key="batch_pattern",
             help="Паттерн будет использован для всех товаров коллекции"
@@ -1233,10 +1215,10 @@ def batch_processing_interface():
             st.session_state.batch_pattern_image = pattern_image
             
             # Компактное превью паттерна
-            preview_size = (80, 80)
+            preview_size = (60, 60)
             preview_pattern = pattern_image.copy()
             preview_pattern.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_pattern, caption="Паттерн", width=80)
+            st.image(preview_pattern, caption="Паттерн", width=60)
             st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
         
         st.markdown('</div>', unsafe_allow_html=True)
