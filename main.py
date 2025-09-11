@@ -275,6 +275,11 @@ def single_generation_interface():
             
             if product_file:
                 product_image = Image.open(product_file)
+                # Конвертируем в RGB для совместимости с JPEG
+                if product_image.mode in ('RGBA', 'LA', 'P'):
+                    from image_processor import ImageProcessor
+                    processor = ImageProcessor()
+                    product_image = processor.convert_to_rgb(product_image)
                 st.session_state.product_image = product_image
                 preview_size = (120, 120)
                 preview_image = product_image.copy()
@@ -324,6 +329,11 @@ def single_generation_interface():
             
             if logo_file:
                 logo_image = Image.open(logo_file)
+                # Конвертируем в RGB для совместимости с JPEG
+                if logo_image.mode in ('RGBA', 'LA', 'P'):
+                    from image_processor import ImageProcessor
+                    processor = ImageProcessor()
+                    logo_image = processor.convert_to_rgb(logo_image)
                 st.session_state.logo_image = logo_image
                 preview_size = (120, 120)
                 preview_logo = logo_image.copy()
@@ -393,6 +403,11 @@ def single_generation_interface():
             
             if pattern_file:
                 pattern_image = Image.open(pattern_file)
+                # Конвертируем в RGB для совместимости с JPEG
+                if pattern_image.mode in ('RGBA', 'LA', 'P'):
+                    from image_processor import ImageProcessor
+                    processor = ImageProcessor()
+                    pattern_image = processor.convert_to_rgb(pattern_image)
                 st.session_state.pattern_image = pattern_image
                 preview_size = (120, 120)
                 preview_pattern = pattern_image.copy()
@@ -1109,6 +1124,11 @@ def batch_processing_interface():
         
         if logo_file:
             logo_image = Image.open(logo_file)
+            # Конвертируем в RGB для совместимости с JPEG
+            if logo_image.mode in ('RGBA', 'LA', 'P'):
+                from image_processor import ImageProcessor
+                processor = ImageProcessor()
+                logo_image = processor.convert_to_rgb(logo_image)
             st.session_state.batch_logo_image = logo_image
             
             # Компактное превью логотипа
@@ -1134,6 +1154,11 @@ def batch_processing_interface():
         
         if pattern_file:
             pattern_image = Image.open(pattern_file)
+            # Конвертируем в RGB для совместимости с JPEG
+            if pattern_image.mode in ('RGBA', 'LA', 'P'):
+                from image_processor import ImageProcessor
+                processor = ImageProcessor()
+                pattern_image = processor.convert_to_rgb(pattern_image)
             st.session_state.batch_pattern_image = pattern_image
             
             # Компактное превью паттерна
@@ -1161,7 +1186,16 @@ def batch_processing_interface():
         product_files = product_files[:10]
     
     if product_files:
-        st.session_state.batch_product_images = [Image.open(f) for f in product_files]
+        # Конвертируем все изображения в RGB для совместимости с JPEG
+        from image_processor import ImageProcessor
+        processor = ImageProcessor()
+        converted_images = []
+        for f in product_files:
+            img = Image.open(f)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                img = processor.convert_to_rgb(img)
+            converted_images.append(img)
+        st.session_state.batch_product_images = converted_images
         
         # Показываем превью товаров с полями для названий
         st.markdown(f"**Загружено товаров: {len(product_files)}**")
