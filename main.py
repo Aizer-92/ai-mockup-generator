@@ -1061,8 +1061,6 @@ def batch_processing_interface():
                     del st.session_state.batch_product_images
                 if "batch_logo_image" in st.session_state:
                     del st.session_state.batch_logo_image
-                if "batch_product_names" in st.session_state:
-                    del st.session_state.batch_product_names
                 st.rerun()
         
         batch_result = {
@@ -1076,9 +1074,8 @@ def batch_processing_interface():
     if "batch_regenerate_params" in st.session_state:
         regenerate_params = st.session_state.batch_regenerate_params
         item_index = regenerate_params["item_index"]
-        product_name = regenerate_params["product_name"]
         
-        st.info(f"🔄 Пересоздание товара: {product_name}")
+        st.info(f"🔄 Пересоздание товара: Товар {item_index + 1}")
         
         with st.spinner("Пересоздание товара с теми же параметрами..."):
             try:
@@ -1089,7 +1086,7 @@ def batch_processing_interface():
                 original_image = regenerate_params["original_image"]
                 
                 # Отладочная информация
-                st.write(f"🔄 Пересоздание товара '{product_name}' (индекс: {item_index})")
+                st.write(f"🔄 Пересоздание товара 'Товар {item_index + 1}' (индекс: {item_index})")
                 st.write(f"📝 Промпт: {prompt_data.get('style', 'N/A')} стиль, {prompt_data.get('logo_application', 'N/A')} нанесение")
                 
                 # Генерируем новый мокап с теми же параметрами
@@ -1112,7 +1109,7 @@ def batch_processing_interface():
                             batch_results[item_index]["status"] = "success"
                             # Обновляем session_state
                             st.session_state.batch_results = batch_results
-                            st.success(f"✅ Товар '{product_name}' пересоздан!")
+                            st.success(f"✅ Товар {item_index + 1} пересоздан!")
                         else:
                             st.error(f"❌ Индекс товара {item_index} не найден в результатах (всего: {len(batch_results)})")
                     else:
@@ -1141,13 +1138,54 @@ def batch_processing_interface():
     st.subheader("Пакетная обработка коллекции")
     st.markdown("Загрузите до 10 фотографий товаров для создания единой коллекции")
     
-    # Загрузка логотипа и паттерна
+    # 1. Загрузка товаров (первым делом)
+    st.markdown('<div class="settings-block batch-products-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
+    st.markdown("### 1. Товары для коллекции (до 10 штук)")
+    
+    product_files = st.file_uploader(
+        "Загрузите изображения товаров",
+        type=['jpg', 'jpeg', 'png', 'webp'],
+        accept_multiple_files=True,
+        key="batch_products"
+    )
+    
+    if product_files and len(product_files) > 10:
+        st.error("⚠️ Максимум 10 товаров за раз")
+        product_files = product_files[:10]
+    
+    if product_files:
+        # Конвертируем все изображения в RGB для совместимости с JPEG
+        from image_processor import ImageProcessor
+        processor = ImageProcessor()
+        converted_images = []
+        for f in product_files:
+            img = Image.open(f)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                img = processor.convert_to_rgb(img)
+            converted_images.append(img)
+        st.session_state.batch_product_images = converted_images
+        
+        # Показываем превью товаров
+        st.markdown(f"**Загружено товаров: {len(product_files)}**")
+        
+        # Показываем товары в сетке
+        cols = st.columns(5)  # 5 колонок для превью
+        for i, img in enumerate(st.session_state.batch_product_images):
+            with cols[i % 5]:
+                preview_size = (80, 80)
+                preview_img = img.copy()
+                preview_img.thumbnail(preview_size, Image.LANCZOS)
+                st.image(preview_img, caption=f"Товар {i+1}", width=80)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 2. Загрузка логотипа и паттерна
     col1, col2 = st.columns(2)
     
     with col1:
         # Блок загрузки логотипа с правильным дизайном
         st.markdown('<div class="settings-block batch-logo-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-        st.markdown("### Логотип для коллекции")
+        st.markdown("### 2. Логотип для коллекции")
         
         logo_file = st.file_uploader(
             "Загрузите логотип клиента",
@@ -1176,7 +1214,7 @@ def batch_processing_interface():
     with col2:
         # Блок загрузки паттерна с правильным дизайном
         st.markdown('<div class="settings-block batch-pattern-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-        st.markdown("### Паттерн (опционально)")
+        st.markdown("### 3. Паттерн (опционально)")
         
         pattern_file = st.file_uploader(
             "Загрузите паттерн для коллекции",
@@ -1202,62 +1240,6 @@ def batch_processing_interface():
             st.caption(f"{pattern_image.size[0]}x{pattern_image.size[1]}")
         
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Загрузка товаров с правильным дизайном
-    st.markdown('<div class="settings-block batch-products-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-    st.markdown("### Товары для коллекции (до 10 штук)")
-    
-    product_files = st.file_uploader(
-        "Загрузите изображения товаров",
-        type=['jpg', 'jpeg', 'png', 'webp'],
-        accept_multiple_files=True,
-        key="batch_products"
-    )
-    
-    if product_files and len(product_files) > 10:
-        st.error("⚠️ Максимум 10 товаров за раз")
-        product_files = product_files[:10]
-    
-    if product_files:
-        # Конвертируем все изображения в RGB для совместимости с JPEG
-        from image_processor import ImageProcessor
-        processor = ImageProcessor()
-        converted_images = []
-        for f in product_files:
-            img = Image.open(f)
-            if img.mode in ('RGBA', 'LA', 'P'):
-                img = processor.convert_to_rgb(img)
-            converted_images.append(img)
-        st.session_state.batch_product_images = converted_images
-        
-        # Показываем превью товаров с полями для названий
-        st.markdown(f"**Загружено товаров: {len(product_files)}**")
-        
-        # Инициализируем названия товаров если их нет
-        if "batch_product_names" not in st.session_state:
-            st.session_state.batch_product_names = [f"Товар {i+1}" for i in range(len(product_files))]
-        
-        # Показываем товары с полями для названий
-        for i, img in enumerate(st.session_state.batch_product_images):
-            col1, col2 = st.columns([1, 4])
-            
-            with col1:
-                preview_size = (80, 80)
-                preview_img = img.copy()
-                preview_img.thumbnail(preview_size, Image.LANCZOS)
-                st.image(preview_img, width=80)
-            
-            with col2:
-                # Поле для названия товара
-                product_name = st.text_input(
-                    f"Название товара {i+1}",
-                    value=st.session_state.batch_product_names[i],
-                    key=f"product_name_{i}",
-                    help="Название товара для сохранения в результатах"
-                )
-                st.session_state.batch_product_names[i] = product_name
-    
-    st.markdown('</div>', unsafe_allow_html=True)
     
     # Настройки коллекции
     if product_files and logo_file:
@@ -1288,13 +1270,7 @@ def batch_processing_interface():
         with col2:
             # Дополнительные настройки с правильным дизайном
             st.markdown('<div class="settings-block batch-additional-block" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">', unsafe_allow_html=True)
-            st.markdown("### Дополнительно")
-            
-            collection_theme = st.text_input(
-                "Тема коллекции",
-                placeholder="Например: 'Летняя коллекция', 'Спортивная линия'",
-                help="Тема или название коллекции"
-            )
+            st.markdown("### 4. Дополнительно")
             
             # Дополнительное описание для промптов
             custom_description = st.text_area(
@@ -1325,9 +1301,7 @@ def batch_processing_interface():
                             product_images=st.session_state.batch_product_images,
                             logo_image=st.session_state.batch_logo_image,
                             product_color=product_color,
-                            collection_style=collection_style,
-                            collection_theme=collection_theme,
-                            product_names=st.session_state.batch_product_names
+                            collection_style=collection_style
                         )
                         
                         if analysis_result["status"] == "success":
@@ -1339,8 +1313,6 @@ def batch_processing_interface():
                                 with st.expander("⚙️ Настройки коллекции"):
                                     st.write(f"**Цвет товаров:** {product_color}")
                                     st.write(f"**Стиль коллекции:** {collection_style}")
-                                    if collection_theme.strip():
-                                        st.write(f"**Тема коллекции:** {collection_theme}")
                                     if custom_description.strip():
                                         st.write(f"**Дополнительное описание:** {custom_description}")
                                     if add_tag:
@@ -1351,8 +1323,7 @@ def batch_processing_interface():
                             # Показываем созданные промпты
                             with st.expander("📝 Созданные промпты для товаров"):
                                 for i, prompt_data in enumerate(analysis_result["individual_prompts"]):
-                                    product_name = st.session_state.batch_product_names[i] if i < len(st.session_state.batch_product_names) else f"Товар {i+1}"
-                                    st.write(f"**{product_name}:**")
+                                    st.write(f"**Товар {i+1}:**")
                                     st.write(f"- Стиль: {prompt_data.get('style', collection_style)}")
                                     st.write(f"- Нанесение: {prompt_data.get('logo_application', 'embroidery')}")
                                     st.write(f"- Расположение: {prompt_data.get('logo_position', 'центр')}")
@@ -1372,8 +1343,7 @@ def batch_processing_interface():
                             
                             collection_settings = {
                                 "product_color": product_color,
-                                "collection_style": collection_style,
-                                "collection_theme": collection_theme
+                                "collection_style": collection_style
                             }
                             
                             # Добавляем дополнительные опции к промптам
@@ -1400,15 +1370,14 @@ def batch_processing_interface():
                             total_items = len(st.session_state.batch_product_images)
                             results = []
                             
-                            for i, (product_img, prompt_data, product_name) in enumerate(zip(
+                            for i, (product_img, prompt_data) in enumerate(zip(
                                 st.session_state.batch_product_images,
-                                analysis_result["individual_prompts"],
-                                st.session_state.batch_product_names
+                                analysis_result["individual_prompts"]
                             )):
                                 # Обновляем прогресс
                                 progress = (i + 1) / total_items
                                 progress_bar.progress(progress)
-                                status_text.text(f"Обработка {i+1}/{total_items}: {product_name}")
+                                status_text.text(f"Обработка {i+1}/{total_items}: Товар {i+1}")
                                 
                                 # Генерируем мокап для текущего товара
                                 try:
@@ -1421,7 +1390,7 @@ def batch_processing_interface():
                                     if mockup_result and len(mockup_result) > 0:
                                         results.append({
                                             "index": i,
-                                            "product_name": product_name,
+                                            "product_name": f"Товар {i+1}",
                                             "original_image": product_img,
                                             "mockup": mockup_result[0],
                                             "prompt_data": prompt_data,
@@ -1430,7 +1399,7 @@ def batch_processing_interface():
                                     else:
                                         results.append({
                                             "index": i,
-                                            "product_name": product_name,
+                                            "product_name": f"Товар {i+1}",
                                             "original_image": product_img,
                                             "mockup": None,
                                             "prompt_data": prompt_data,
@@ -1440,7 +1409,7 @@ def batch_processing_interface():
                                 except Exception as e:
                                     results.append({
                                         "index": i,
-                                        "product_name": product_name,
+                                        "product_name": f"Товар {i+1}",
                                         "original_image": product_img,
                                         "mockup": None,
                                         "prompt_data": prompt_data,
@@ -1478,8 +1447,7 @@ def batch_processing_interface():
                             
                             collection_settings = {
                                 "product_color": product_color,
-                                "collection_style": collection_style,
-                                "collection_theme": collection_theme
+                                "collection_style": collection_style
                             }
                             
                             # Добавляем дополнительные опции к промптам (fallback случай)
@@ -1506,15 +1474,14 @@ def batch_processing_interface():
                             total_items = len(st.session_state.batch_product_images)
                             results = []
                             
-                            for i, (product_img, prompt_data, product_name) in enumerate(zip(
+                            for i, (product_img, prompt_data) in enumerate(zip(
                                 st.session_state.batch_product_images,
-                                analysis_result["individual_prompts"],
-                                st.session_state.batch_product_names
+                                analysis_result["individual_prompts"]
                             )):
                                 # Обновляем прогресс
                                 progress = (i + 1) / total_items
                                 progress_bar.progress(progress)
-                                status_text.text(f"Обработка {i+1}/{total_items}: {product_name}")
+                                status_text.text(f"Обработка {i+1}/{total_items}: Товар {i+1}")
                                 
                                 # Генерируем мокап для текущего товара
                                 try:
@@ -1527,7 +1494,7 @@ def batch_processing_interface():
                                     if mockup_result and len(mockup_result) > 0:
                                         results.append({
                                             "index": i,
-                                            "product_name": product_name,
+                                            "product_name": f"Товар {i+1}",
                                             "original_image": product_img,
                                             "mockup": mockup_result[0],
                                             "prompt_data": prompt_data,
@@ -1536,7 +1503,7 @@ def batch_processing_interface():
                                     else:
                                         results.append({
                                             "index": i,
-                                            "product_name": product_name,
+                                            "product_name": f"Товар {i+1}",
                                             "original_image": product_img,
                                             "mockup": None,
                                             "prompt_data": prompt_data,
@@ -1546,7 +1513,7 @@ def batch_processing_interface():
                                 except Exception as e:
                                     results.append({
                                         "index": i,
-                                        "product_name": product_name,
+                                        "product_name": f"Товар {i+1}",
                                         "original_image": product_img,
                                         "mockup": None,
                                         "prompt_data": prompt_data,
@@ -1637,7 +1604,7 @@ def display_batch_results(batch_result: dict):
                                         # Сохраняем параметры для пересоздания
                                         st.session_state.batch_regenerate_params = {
                                             "item_index": result['index'],
-                                            "product_name": product_name,
+                                            "product_name": f"Товар {i+1}",
                                             "prompt_data": result["prompt_data"],
                                             "original_image": result["original_image"]
                                         }

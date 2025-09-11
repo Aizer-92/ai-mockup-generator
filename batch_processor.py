@@ -28,9 +28,7 @@ class BatchProcessor:
     def analyze_collection(self, product_images: List[Image.Image], 
                           logo_image: Image.Image,
                           product_color: str = "как на фото",
-                          collection_style: str = "modern",
-                          collection_theme: str = "",
-                          product_names: List[str] = None) -> Dict:
+                          collection_style: str = "modern") -> Dict:
         """
         Анализ коллекции и создание индивидуальных промптов для каждого товара
         
@@ -39,8 +37,6 @@ class BatchProcessor:
             logo_image: Логотип клиента
             product_color: Цвет товаров
             collection_style: Стиль коллекции
-            collection_theme: Тема коллекции
-            product_names: Список названий товаров
         
         Returns:
             Словарь с индивидуальными промптами для каждого товара
@@ -59,7 +55,7 @@ class BatchProcessor:
             
             # Создание промпта для анализа коллекции
             collection_prompt = self._create_collection_analysis_prompt(
-                product_color, collection_style, collection_theme, len(product_images), product_names
+                product_color, collection_style, len(product_images)
             )
             
             # Отправка запроса в Gemini для анализа коллекции
@@ -73,7 +69,6 @@ class BatchProcessor:
                 return {
                     "status": "success",
                     "individual_prompts": analysis_result["individual_prompts"],
-                    "collection_theme": analysis_result.get("collection_theme", collection_theme),
                     "processing_time": time.time() - start_time
                 }
             else:
@@ -95,7 +90,7 @@ class BatchProcessor:
                     print("⚠️ Текстовый AI анализ тоже не удался, используем fallback промпты")
                 # Fallback - создаем базовые промпты
                 return self._create_fallback_prompts(
-                    product_images, product_color, collection_style, collection_theme, product_names
+                    product_images, product_color, collection_style
                 )
                 
         except Exception as e:
@@ -109,8 +104,7 @@ class BatchProcessor:
     def process_batch(self, product_images: List[Image.Image], 
                      logo_image: Image.Image, 
                      individual_prompts: List[Dict],
-                     collection_settings: Dict,
-                     product_names: List[str] = None) -> Dict:
+                     collection_settings: Dict) -> Dict:
         """
         Пакетная обработка изображений с индивидуальными промптами
         
@@ -119,7 +113,6 @@ class BatchProcessor:
             logo_image: Логотип клиента
             individual_prompts: Список индивидуальных промптов
             collection_settings: Настройки коллекции
-            product_names: Список названий товаров
         
         Returns:
             Словарь с результатами обработки
@@ -129,12 +122,8 @@ class BatchProcessor:
         results = []
         
         try:
-            # Инициализируем названия товаров если не переданы
-            if product_names is None:
-                product_names = [f"Товар {i+1}" for i in range(len(product_images))]
-            
-            for i, (product_img, prompt_data, product_name) in enumerate(zip(product_images, individual_prompts, product_names)):
-                print(f"Обработка товара {i+1}/{len(product_images)}: {product_name}")
+            for i, (product_img, prompt_data) in enumerate(zip(product_images, individual_prompts)):
+                print(f"Обработка товара {i+1}/{len(product_images)}: Товар {i+1}")
                 
                 # Используем ОРИГИНАЛЬНОЕ изображение товара (не обработанное)
                 # Обрабатываем только для API (сжатие), но не меняем сам товар
@@ -192,15 +181,11 @@ class BatchProcessor:
             }
     
     def _create_collection_analysis_prompt(self, product_color: str, collection_style: str, 
-                                         collection_theme: str, num_products: int, product_names: List[str] = None) -> str:
+                                         num_products: int) -> str:
         """Создание промпта для анализа коллекции"""
         
-        # Добавляем названия товаров в промпт
-        products_info = ""
-        if product_names:
-            products_info = "\nТОВАРЫ В КОЛЛЕКЦИИ:\n"
-            for i, name in enumerate(product_names):
-                products_info += f"- Товар {i+1}: {name}\n"
+        # Информация о количестве товаров
+        products_info = f"\nТОВАРЫ В КОЛЛЕКЦИИ: {num_products} товаров"
         
         # Словарь перевода стилей
         style_translation = {
@@ -219,7 +204,6 @@ class BatchProcessor:
 НАСТРОЙКИ КОЛЛЕКЦИИ:
 - Цвет товаров: {product_color}
 - Стиль коллекции: {collection_style} ({collection_style_key})
-- Тема коллекции: {collection_theme if collection_theme else "не указана"}
 {products_info}
 
 ЗАДАЧА:
@@ -261,8 +245,7 @@ class BatchProcessor:
 - reasoning: объяснение выбора для этого товара с указанием типа товара (БЕЗ описания фоновых объектов)"""
     
     def _create_fallback_prompts(self, product_images: List[Image.Image], 
-                               product_color: str, collection_style: str, 
-                               collection_theme: str, product_names: List[str] = None) -> Dict:
+                               product_color: str, collection_style: str) -> Dict:
         """Создание базовых промптов как fallback"""
         
         applications = ["embroidery", "printing", "sublimation"]  # Только простые методы
@@ -282,7 +265,6 @@ class BatchProcessor:
         
         individual_prompts = []
         for i, img in enumerate(product_images):
-            product_name = product_names[i] if product_names and i < len(product_names) else f"Товар {i+1}"
             prompt_data = {
                 "style": collection_style_key,  # Единый стиль для всех
                 "logo_application": applications[i % len(applications)],
@@ -299,7 +281,6 @@ class BatchProcessor:
         return {
             "status": "fallback",
             "individual_prompts": individual_prompts,
-            "collection_theme": collection_theme,
             "processing_time": 0
         }
     
@@ -308,7 +289,7 @@ class BatchProcessor:
         
         saved_paths = []
         timestamp = int(time.time())
-        collection_name = collection_settings.get("collection_theme", f"collection_{timestamp}")
+        collection_name = f"collection_{timestamp}"
         
         try:
             for result in results:
