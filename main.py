@@ -11,7 +11,7 @@ import time
 from typing import Optional
 
 # Импортируем конфигурацию после инициализации Streamlit
-from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST, GOOGLE_DRIVE_ENABLED, SERVER_STORAGE_ENABLED, FTP_ENABLED
+from config import get_config, STREAMLIT_PORT, STREAMLIT_HOST, SERVER_STORAGE_ENABLED, FTP_ENABLED
 from auth import is_authenticated, login_form, logout_button, require_auth, get_user_info
 from mockup_generator import MockupGenerator
 from batch_processor import BatchProcessor
@@ -519,8 +519,11 @@ def single_generation_interface():
                         if custom_prompt.strip():
                             st.info(f"📝 Дополнительные требования: {custom_prompt}")
                         
-                        # Показываем детальную информацию для отладки
-                        with st.expander("🔍 Отладочная информация"):
+                        # Показываем только статус генерации
+                        st.info("🚀 Генерируем мокап с помощью AI...")
+                        
+                        # Кнопка для показа отладочной информации (скрыта по умолчанию)
+                        with st.expander("🔍 Отладочная информация (для разработчиков)"):
                             st.write("**📦 Товар:**")
                             st.write(f"- Стиль: `{mockup_style}`")
                             st.write(f"- Цвет: `{product_color}`")
@@ -577,74 +580,7 @@ def single_generation_interface():
                                     st.error(f"❌ Тип нанесения '{logo_application_key}' не найден в словаре!")
                                     st.write(f"**Доступные типы:** {list(material_dict.keys())}")
                         
-                        # Показываем, что именно отправляется в Gemini
-                        st.info("🚀 Отправляем запрос в Gemini 2.5 Flash...")
-                        st.write(f"**Параметры:**")
-                        st.write(f"- Стиль: {mockup_style}")
-                        st.write(f"- Тип нанесения: {logo_application}")
-                        st.write(f"- Дополнительные требования: {custom_prompt if custom_prompt.strip() else 'Нет'}")
-                        
-                        # Показываем полный промпт для отладки
-                        with st.expander("🔍 Полный промпт для Gemini (отладка)"):
-                            # Создаем промпт как в gemini_client.py
-                            style_descriptions = {
-                                "modern": "Clean, minimalist design with sharp lines and contemporary aesthetics",
-                                "vintage": "Classic, retro style with warm tones and traditional elements",
-                                "minimal": "Ultra-clean design with maximum white space and simple elements",
-                                "luxury": "Premium, high-end appearance with elegant details and rich materials",
-                                "corporate": "Professional, business-oriented design with formal presentation"
-                            }
-                            
-                            material_adaptations = {
-                                "fabric": {
-                                    "embroidery": "embroidered with raised thread texture",
-                                    "printing": "printed with smooth, flat appearance",
-                                    "woven": "woven into the fabric with integrated texture",
-                                    "embossed": "embossed with raised surface details"
-                                },
-                                "textile": {
-                                    "embroidery": "embroidered with raised thread texture",
-                                    "printing": "printed with smooth, flat appearance",
-                                    "woven": "woven into the textile with integrated texture",
-                                    "embossed": "embossed with raised surface details"
-                                },
-                                "leather": {
-                                    "embroidery": "embroidered with raised thread texture",
-                                    "printing": "printed with smooth, flat appearance",
-                                    "woven": "woven into the leather with integrated texture",
-                                    "embossed": "embossed with raised surface details"
-                                }
-                            }
-                            
-                            product_type = "fabric"  # По умолчанию
-                            logo_effect = material_adaptations.get(product_type, material_adaptations["fabric"]).get(
-                                logo_application, material_adaptations["fabric"]["embroidery"]
-                            )
-                            
-                            # Обработка опции "как на фото"
-                            color_instruction = "keep the original color from the product image" if product_color == "как на фото" else f"make the product {product_color}"
-                            angle_instruction = "keep the original angle from the product image" if product_angle == "как на фото" else f"photograph from {product_angle} angle"
-                            
-                            debug_prompt = f"""PART 1 - PRODUCT SETUP:
-Create a product in {mockup_style} style.
-Color: {color_instruction}
-Photography: {angle_instruction}
-Style: {style_descriptions.get(mockup_style, style_descriptions['modern'])}
-
-PART 2 - LOGO APPLICATION:
-Apply logo using {logo_application_key} method: {logo_effect}
-Logo must follow product curves and texture naturally.
-
-{f"SPECIAL REQUIREMENTS: {custom_prompt}" if custom_prompt.strip() else ""}
-
-Final requirements:
-- Professional studio lighting
-- Clean background
-- High quality image
-
-Generate the mockup image."""
-                            
-                            st.code(debug_prompt, language="text")
+                        # Убираем лишнюю отладочную информацию
                         
                         # Получаем изображения из сессии
                         product_image = st.session_state.product_image
@@ -744,7 +680,7 @@ def display_results(result: dict):
         st.error(f"Доступные ключи в результате: {list(result.keys())}")
         return
     
-    # Добавляем новые мокапы в session_state и загружаем в Google Drive
+    # Добавляем новые мокапы в session_state
     if "gemini_mockups" in mockups:
         for mockup in mockups["gemini_mockups"]:
             if "image_data" in mockup:
@@ -768,18 +704,33 @@ def display_results(result: dict):
                 # Добавляем в session_state (избегаем дублирования)
                 if gallery_entry not in st.session_state.generated_mockups:
                     st.session_state.generated_mockups.append(gallery_entry)
+    
+    # Сначала отображаем мокапы
+    display_mockups_dynamically(mockups, result)
+    
+    # Затем загружаем на серверы (в фоновом режиме)
+    if "gemini_mockups" in mockups:
+        for mockup in mockups["gemini_mockups"]:
+            if "image_data" in mockup:
+                gallery_entry = {
+                    "image_data": mockup["image_data"],
+                    "metadata": {
+                        "style": mockup.get("style", "unknown"),
+                        "logo_application": mockup.get("logo_application", "unknown"),
+                        "custom_prompt": mockup.get("custom_prompt", ""),
+                        "product_color": mockup.get("product_color", "белый"),
+                        "product_angle": mockup.get("product_angle", "спереди"),
+                        "created_time": time.time()
+                    }
+                }
                 
-                # Загружаем в Google Drive если включено
-                upload_to_google_drive(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
+                # Google Drive отключен
                 
                 # Загружаем на сервер если включено
                 upload_to_server(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
                 
                 # Загружаем на FTP если включено
                 upload_to_ftp(mockup["image_data"], gallery_entry["metadata"], mockup.get("description", ""))
-    
-    # Создаем динамические контейнеры для мокапов
-    display_mockups_dynamically(mockups, result)
 
 def display_mockups_dynamically(mockups: dict, result: dict):
     """Динамическое отображение мокапов с возможностью обновления"""
@@ -824,6 +775,16 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             image_data = mockup["image_data"]
                             image = Image.open(io.BytesIO(image_data))
                             
+                            # Конвертируем в RGB для совместимости с JPEG
+                            if image.mode in ('RGBA', 'LA', 'P'):
+                                from image_processor import ImageProcessor
+                                processor = ImageProcessor()
+                                image = processor.convert_to_rgb(image)
+                                # Обновляем image_data
+                                img_byte_arr = io.BytesIO()
+                                image.save(img_byte_arr, format='JPEG', quality=95)
+                                image_data = img_byte_arr.getvalue()
+                            
                             # Увеличенное превью результата для лучшего просмотра
                             st.image(image, caption=f"AI-мокап {i+1}", use_container_width=True)
                             
@@ -843,7 +804,7 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             
                             with col2:
                                 # Кнопка пересоздания с динамическим обновлением
-                                if st.button(f"🔄 Пересоздать {i+1}", key=f"regenerate_{i+1}", use_container_width=True):
+                                if st.button(f"🎨 Перегенерировать мокап {i+1}", key=f"regenerate_{i+1}", use_container_width=True, help="Создать новый мокап с теми же параметрами"):
                                     regenerate_mockup_dynamically(i, mockup, result, container_key)
                             
                             # Показываем текстовый ответ если есть
@@ -1016,7 +977,7 @@ def update_mockup_display(mockup_index: int, new_mockup: dict, result: dict, con
                 
                 with col2:
                     # Кнопка пересоздания с динамическим обновлением
-                    if st.button(f"🔄 Пересоздать {mockup_index+1}", key=f"regenerate_{mockup_index+1}_new", use_container_width=True):
+                    if st.button(f"🎨 Перегенерировать мокап {mockup_index+1}", key=f"regenerate_{mockup_index+1}_new", use_container_width=True, help="Создать новый мокап с теми же параметрами"):
                         regenerate_mockup_dynamically(mockup_index, new_mockup, result, container_key)
                 
                 # Показываем текстовый ответ если есть
@@ -1605,7 +1566,7 @@ def display_batch_results(batch_result: dict):
                                 
                                 with col_regenerate:
                                     # Кнопка пересоздания
-                                    if st.button(f"🔄 Пересоздать", key=f"regenerate_batch_{result['index']}", use_container_width=True):
+                                    if st.button(f"🎨 Перегенерировать", key=f"regenerate_batch_{result['index']}", use_container_width=True, help="Создать новый мокап с теми же параметрами"):
                                         # Сохраняем параметры для пересоздания
                                         st.session_state.batch_regenerate_params = {
                                             "item_index": result['index'],
@@ -1647,164 +1608,107 @@ def gallery_page():
     st.markdown("# 🖼️ Галерея мокапов")
     st.markdown("Просмотр всех сгенерированных мокапов")
     
-    # Кнопка для переключения на оптимизированную галерею
-    col1, col2 = st.columns([3, 1])
-    with col2:
-        if st.button("🚀 Оптимизированная галерея", help="Быстрая галерея с кэшированием"):
-            st.session_state['use_optimized_gallery'] = True
-            st.rerun()
-    
-    # Проверяем, нужно ли использовать оптимизированную галерею
-    if st.session_state.get('use_optimized_gallery', False):
-        try:
-            from optimized_gallery import get_optimized_gallery
-            gallery = get_optimized_gallery()
+    # Используем оптимизированную галерею по умолчанию
+    try:
+        from optimized_gallery import get_optimized_gallery
+        gallery = get_optimized_gallery()
+        
+        # Получаем все мокапы с кэшированием
+        with st.spinner("🔄 Загрузка мокапов..."):
+            all_mockups_data = gallery.get_all_mockups(limit=100)
             
-            # Получаем все мокапы с кэшированием
-            with st.spinner("🔄 Загрузка мокапов..."):
-                all_mockups_data = gallery.get_all_mockups(limit=100)
-            
-            if not all_mockups_data:
-                st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
-                return
-            
-            # Получаем опции для фильтров
-            styles, applications = gallery.get_filter_options(all_mockups_data)
-            
-            # Фильтры
-            st.markdown("### 🔍 Фильтры")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                selected_style = st.selectbox(
-                    "Стиль мокапа:",
-                    ["Все"] + styles,
-                    index=0
-                )
-            
-            with col2:
-                selected_application = st.selectbox(
-                    "Тип нанесения:",
-                    ["Все"] + applications,
-                    index=0
-                )
-            
-            with col3:
-                date_filter = st.selectbox(
-                    "Период:",
-                    ["Все", "Сегодня", "За неделю", "За месяц"],
-                    index=0
-                )
-            
-            # Применяем фильтры
-            filtered_mockups = gallery.apply_filters(
-                all_mockups_data, 
-                selected_style, 
-                selected_application, 
-                date_filter
-            )
-            
-            # Показываем статистику
-            st.markdown(f"### 📊 Найдено мокапов: {len(filtered_mockups)}")
-            
-            if not filtered_mockups:
-                st.info("🔍 По выбранным фильтрам мокапы не найдены")
-                return
-            
-            # Инициализируем страницу в session_state
-            if 'gallery_page' not in st.session_state:
-                st.session_state['gallery_page'] = 0
-            
-            # Кнопки управления
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                if st.button("🔄 Обновить кэш"):
-                    # Очищаем кэш
-                    if 'gallery_cache' in st.session_state:
-                        del st.session_state['gallery_cache']
-                    st.rerun()
-            
-            with col2:
-                if st.button("📊 Статистика"):
-                    show_gallery_statistics(filtered_mockups)
-            
-            with col3:
-                if st.button("⬅️ Обычная галерея"):
-                    st.session_state['use_optimized_gallery'] = False
-                    st.rerun()
-            
-            # Отображаем галерею
-            gallery.display_gallery(filtered_mockups, st.session_state['gallery_page'])
+        if not all_mockups_data:
+            st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
             return
-            
-        except ImportError as e:
-            st.error(f"Ошибка импорта оптимизированной галереи: {e}")
-            st.info("Используется стандартная галерея")
-        except Exception as e:
-            st.error(f"Ошибка в оптимизированной галерее: {e}")
-            st.info("Используется стандартная галерея")
+        
+        # Получаем опции для фильтров
+        styles, applications = gallery.get_filter_options(all_mockups_data)
+        
+        # Фильтры
+        st.markdown("### 🔍 Фильтры")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            selected_style = st.selectbox(
+                "Стиль мокапа:",
+                ["Все"] + styles,
+                index=0
+            )
+        
+        with col2:
+            selected_application = st.selectbox(
+                "Тип нанесения:",
+                ["Все"] + applications,
+                index=0
+            )
+        
+        with col3:
+            date_filter = st.selectbox(
+                "Период:",
+                ["Все", "Сегодня", "За неделю", "За месяц"],
+                index=0
+            )
+        
+        # Применяем фильтры
+        filtered_mockups = gallery.apply_filters(
+            all_mockups_data, 
+            selected_style, 
+            selected_application, 
+            date_filter
+        )
+        
+        # Показываем статистику
+        st.markdown(f"### 📊 Найдено мокапов: {len(filtered_mockups)}")
+        
+        if not filtered_mockups:
+            st.info("🔍 По выбранным фильтрам мокапы не найдены")
+            return
+        
+        # Инициализируем страницу в session_state
+        if 'gallery_page' not in st.session_state:
+            st.session_state['gallery_page'] = 0
+        
+        # Пагинация
+        items_per_page = 6
+        total_pages = (len(filtered_mockups) - 1) // items_per_page + 1
+        
+        if total_pages > 1:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                page = st.selectbox(
+                    "Страница:",
+                    range(total_pages),
+                    index=st.session_state['gallery_page'],
+                    format_func=lambda x: f"Страница {x + 1} из {total_pages}"
+                )
+                st.session_state['gallery_page'] = page
+        
+        # Отображаем галерею
+        gallery.display_gallery(filtered_mockups, st.session_state['gallery_page'])
+        return
+        
+    except ImportError as e:
+        st.error(f"Ошибка импорта оптимизированной галереи: {e}")
+        st.info("Попробуйте перезагрузить страницу")
+    except Exception as e:
+        st.error(f"Ошибка в оптимизированной галерее: {e}")
+        st.info("Попробуйте перезагрузить страницу")
     
-    # Получаем список всех изображений из outputs и cache
-    outputs_dir = "outputs"
-    cache_dir = "cache"
-    
-    # Проверяем обе папки
-    all_image_files = []
+    # Если оптимизированная галерея не работает, показываем сообщение об ошибке
+    st.error("❌ Не удалось загрузить галерею мокапов")
+    st.info("Попробуйте перезагрузить страницу или обратитесь к администратору")
+
+def upload_to_google_drive(image_data: bytes, metadata: dict, description: str = ""):
+    """Google Drive отключен"""
+    pass
+
+def get_google_drive_mockups(limit: int = 50) -> list:
+    """Google Drive отключен"""
+    return []
+
+def get_all_mockups_data():
+    """Получает все мокапы из разных источников"""
     all_mockups_data = []
-    
-    # 1. Проверяем папку outputs (временно отключено)
-    # if os.path.exists(outputs_dir):
-    #     output_files = [f for f in os.listdir(outputs_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
-    #     for image_file in output_files:
-    #         image_path = os.path.join(outputs_dir, image_file)
-    #         # Извлекаем cache_key из имени файла
-    #         cache_key = image_file.split('_')[0]
-    #         metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
-    #         
-    #         metadata = {}
-    #         if os.path.exists(metadata_file):
-    #             try:
-    #                 with open(metadata_file, 'r', encoding='utf-8') as f:
-    #                     metadata = json.load(f)
-    #             except:
-    #                 pass
-    #         
-    #         all_mockups_data.append({
-    #             'image_file': image_file,
-    #             'image_path': image_path,
-    #             'cache_key': cache_key,
-    #             'metadata': metadata,
-    #             'created_time': os.path.getctime(image_path),
-    #             'source': 'outputs'
-    #         })
-    
-    # 2. Проверяем папку cache/images (временно отключено)
-    # cache_images_dir = os.path.join(cache_dir, "images")
-    # if os.path.exists(cache_images_dir):
-    #     cache_files = [f for f in os.listdir(cache_images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))]
-    #     for image_file in cache_files:
-    #         image_path = os.path.join(cache_images_dir, image_file)
-    #         # Извлекаем cache_key из имени файла
-    #         cache_key = image_file.split('_')[0]
-    #         metadata_file = os.path.join(cache_dir, f"{cache_key}.json")
-    #         
-    #         metadata = {}
-    #         if os.path.exists(metadata_file):
-    #             try:
-    #                 with open(metadata_file, 'r', encoding='utf-8') as f:
-    #                     metadata = json.load(f)
-    #             except:
-    #                 pass
-    #         
-    #         all_mockups_data.append({
-    #             'image_file': image_file,
-    #             'image_path': image_path,
-    #             'cache_key': cache_key,
-    #             'metadata': metadata,
-    #             'created_time': os.path.getctime(image_path),
-    #             'source': 'cache'
-    #         })
     
     # Проверяем session_state на наличие изображений (временно отключено)
     session_mockups = []
@@ -1821,8 +1725,8 @@ def gallery_page():
     #                 'image_data': mockup_data['image_data']
     #             })
     
-    # Получаем мокапы из Google Drive
-    drive_mockups = get_google_drive_mockups(50)
+    # Google Drive отключен
+    drive_mockups = []
     
     # Получаем мокапы с сервера
     server_mockups = get_server_mockups(50)
@@ -1837,8 +1741,6 @@ def gallery_page():
         st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
         
         storage_info = []
-        if GOOGLE_DRIVE_ENABLED:
-            storage_info.append("Google Drive")
         if SERVER_STORAGE_ENABLED:
             storage_info.append("серверное хранилище")
         if FTP_ENABLED:
@@ -1866,8 +1768,7 @@ def gallery_page():
                 st.write(f"**Файлы в {cache_images_dir}:** {files}")
             
             st.write(f"**Мокапы в session_state:** {len(session_mockups)}")
-            st.write(f"**Мокапы в Google Drive:** {len(drive_mockups)}")
-            st.write(f"**Google Drive включен:** {GOOGLE_DRIVE_ENABLED}")
+            st.write(f"**Google Drive отключен**")
         
         return
     
@@ -2135,79 +2036,12 @@ def gallery_page():
         st.metric("Размер папки", f"{total_size / (1024*1024):.1f} МБ")
 
 def upload_to_google_drive(image_data: bytes, metadata: dict, description: str = ""):
-    """Загружает мокап в Google Drive"""
-    if not GOOGLE_DRIVE_ENABLED:
-        return
-    
-    try:
-        from google_drive_client import get_drive_client
-        
-        # Получаем клиент Google Drive
-        drive_client = get_drive_client()
-        if not drive_client:
-            return
-        
-        # Создаем имя файла
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        style = metadata.get("mockup_style", "unknown")
-        filename = f"mockup_{timestamp}_{style}.jpg"
-        
-        # Подготавливаем метаданные
-        upload_metadata = {
-            **metadata,
-            "description": description,
-            "uploaded_at": datetime.now().isoformat(),
-            "source": "AI Mockup Generator"
-        }
-        
-        # Загружаем файл
-        file_id = drive_client.upload_mockup(image_data, filename, upload_metadata)
-        if file_id:
-            print(f"✅ Мокап загружен в Google Drive: {filename}")
-        else:
-            print(f"❌ Ошибка загрузки в Google Drive: {filename}")
-            
-    except Exception as e:
-        print(f"❌ Ошибка загрузки в Google Drive: {e}")
+    """Google Drive отключен"""
+    pass
 
 def get_google_drive_mockups(limit: int = 50) -> list:
-    """Получает список мокапов из Google Drive"""
-    if not GOOGLE_DRIVE_ENABLED:
-        return []
-    
-    try:
-        from google_drive_client import get_drive_client
-        
-        # Получаем клиент Google Drive
-        drive_client = get_drive_client()
-        if not drive_client:
-            return []
-        
-        # Получаем список мокапов
-        mockups = drive_client.get_mockups_list(limit)
-        
-        # Преобразуем в формат для галереи
-        gallery_mockups = []
-        for mockup in mockups:
-            # Скачиваем изображение
-            image_data = drive_client.download_mockup(mockup['id'])
-            if image_data:
-                gallery_mockups.append({
-                    'image_file': mockup['filename'],
-                    'image_path': f"drive_{mockup['id']}",
-                    'cache_key': mockup['id'],
-                    'metadata': mockup['metadata'],
-                    'created_time': datetime.fromisoformat(mockup['created_time'].replace('Z', '+00:00')).timestamp(),
-                    'source': 'google_drive',
-                    'image_data': base64.b64encode(image_data).decode('utf-8'),
-                    'drive_id': mockup['id']
-                })
-        
-        return gallery_mockups
-        
-    except Exception as e:
-        print(f"❌ Ошибка получения мокапов из Google Drive: {e}")
-        return []
+    """Google Drive отключен"""
+    return []
 
 def upload_to_server(image_data: bytes, metadata: dict, description: str = ""):
     """Загружает мокап на сервер"""

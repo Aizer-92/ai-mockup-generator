@@ -405,6 +405,16 @@ Generate the mockup image."""
             
             # Добавляем логотип с указанием типа
             logo_buffer = io.BytesIO()
+            
+            # Убеждаемся, что логотип в RGB режиме для JPEG
+            if compressed_logo.mode == 'RGBA':
+                # Создаем белый фон для RGBA изображений
+                background = Image.new('RGB', compressed_logo.size, (255, 255, 255))
+                background.paste(compressed_logo, mask=compressed_logo.split()[-1])
+                compressed_logo = background
+            elif compressed_logo.mode != 'RGB':
+                compressed_logo = compressed_logo.convert('RGB')
+            
             compressed_logo.save(logo_buffer, format='JPEG', quality=COMPRESSION_QUALITY)
             logo_data = logo_buffer.getvalue()
             parts.append({
@@ -417,6 +427,16 @@ Generate the mockup image."""
             # Добавляем изображения товаров с указанием типа
             for i, product_img in enumerate(compressed_products):
                 product_buffer = io.BytesIO()
+                
+                # Убеждаемся, что изображение товара в RGB режиме для JPEG
+                if product_img.mode == 'RGBA':
+                    # Создаем белый фон для RGBA изображений
+                    background = Image.new('RGB', product_img.size, (255, 255, 255))
+                    background.paste(product_img, mask=product_img.split()[-1])
+                    product_img = background
+                elif product_img.mode != 'RGB':
+                    product_img = product_img.convert('RGB')
+                
                 product_img.save(product_buffer, format='JPEG', quality=COMPRESSION_QUALITY)
                 product_data = product_buffer.getvalue()
                 parts.append({

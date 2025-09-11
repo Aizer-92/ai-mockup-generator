@@ -9,7 +9,7 @@ from typing import List, Dict, Optional, Tuple
 from PIL import Image
 import io
 import streamlit as st
-from config import FTP_ENABLED, SERVER_STORAGE_ENABLED, GOOGLE_DRIVE_ENABLED
+from config import FTP_ENABLED, SERVER_STORAGE_ENABLED
 from ftp_uploader import get_ftp_uploader
 from server_storage import get_server_storage
 
@@ -57,10 +57,7 @@ class OptimizedGallery:
             server_mockups = self.get_server_mockups_optimized(limit // 2)
             all_mockups.extend(server_mockups)
         
-        # Получаем мокапы из Google Drive
-        if GOOGLE_DRIVE_ENABLED:
-            drive_mockups = self.get_google_drive_mockups_optimized(limit // 2)
-            all_mockups.extend(drive_mockups)
+        # Google Drive отключен
         
         # Сортируем по дате создания
         all_mockups.sort(key=lambda x: x.get('created_time', 0), reverse=True)
@@ -127,15 +124,7 @@ class OptimizedGallery:
             st.error(f"Ошибка получения мокапов с сервера: {e}")
             return []
     
-    def get_google_drive_mockups_optimized(self, limit: int = 50) -> List[Dict]:
-        """Оптимизированное получение мокапов из Google Drive"""
-        try:
-            # Здесь должна быть логика получения из Google Drive
-            # Пока возвращаем пустой список
-            return []
-        except Exception as e:
-            st.error(f"Ошибка получения мокапов из Google Drive: {e}")
-            return []
+    # Google Drive функции удалены
     
     def _extract_timestamp_from_filename(self, filename: str) -> float:
         """Извлекает timestamp из имени файла"""
