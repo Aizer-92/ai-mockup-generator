@@ -750,6 +750,24 @@ def display_results(result: dict):
 def display_mockups_dynamically(mockups: dict, result: dict):
     """Динамическое отображение мокапов с возможностью обновления"""
     
+    # Проверяем, что mockups не пустой
+    if not mockups:
+        st.error("❌ Критическая ошибка: 'mockups'")
+        st.info("Попробуйте перезагрузить страницу или проверить изображения")
+        
+        # Кнопка для сброса session_state
+        if st.button("🔄 Сбросить состояние", help="Очистить все данные и начать заново"):
+            # Очищаем все ключи связанные с мокапами
+            keys_to_clear = [
+                'last_result', 'mockup_containers', 'generated_mockups',
+                'gallery_cache', 'regenerate_params', 'batch_results'
+            ]
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+        return
+    
     # Проверка, использовался ли fallback
     fallback_used = mockups.get("fallback_used", False)
     
@@ -923,8 +941,18 @@ def regenerate_mockup_dynamically(mockup_index: int, original_mockup: dict, orig
             if new_result and "mockups" in new_result and "gemini_mockups" in new_result["mockups"]:
                 new_mockups = new_result["mockups"]["gemini_mockups"]
                 if new_mockups and len(new_mockups) > 0:
+                    # Убеждаемся, что оригинальный результат имеет правильную структуру
+                    if "mockups" not in original_result:
+                        original_result["mockups"] = {}
+                    if "gemini_mockups" not in original_result["mockups"]:
+                        original_result["mockups"]["gemini_mockups"] = []
+                    
                     # Заменяем конкретный мокап
-                    original_result["mockups"]["gemini_mockups"][mockup_index] = new_mockups[0]
+                    if mockup_index < len(original_result["mockups"]["gemini_mockups"]):
+                        original_result["mockups"]["gemini_mockups"][mockup_index] = new_mockups[0]
+                    else:
+                        # Если индекс больше длины массива, добавляем в конец
+                        original_result["mockups"]["gemini_mockups"].append(new_mockups[0])
                     
                     # Обновляем session_state
                     st.session_state.last_result = original_result
@@ -945,7 +973,13 @@ def regenerate_mockup_dynamically(mockup_index: int, original_mockup: dict, orig
                 else:
                     st.error("❌ Не удалось получить новый мокап")
             else:
-                st.error("❌ Ошибка при генерации нового мокапа")
+                # Fallback: создаем новую структуру если её нет
+                if not new_result:
+                    st.error("❌ Ошибка: генератор вернул пустой результат")
+                elif "mockups" not in new_result:
+                    st.error("❌ Ошибка: в результате отсутствует ключ 'mockups'")
+                else:
+                    st.error("❌ Ошибка при генерации нового мокапа")
         
         except Exception as e:
             st.error(f"❌ Ошибка пересоздания: {str(e)}")
@@ -955,7 +989,16 @@ def regenerate_mockup_dynamically(mockup_index: int, original_mockup: dict, orig
 def update_mockup_display(mockup_index: int, new_mockup: dict, result: dict, container_key: str):
     """Обновление отображения конкретного мокапа"""
     
+    # Проверяем, что new_mockup не пустой
+    if not new_mockup:
+        st.error("❌ Ошибка: пустой мокап для обновления")
+        return
+    
     # Получаем контейнер
+    if container_key not in st.session_state.mockup_containers:
+        st.error(f"❌ Ошибка: контейнер {container_key} не найден")
+        return
+        
     mockup_container = st.session_state.mockup_containers[container_key]
     
     # Обновляем содержимое контейнера
