@@ -51,7 +51,7 @@ def main():
     )
     
     # Упрощенный заголовок
-    st.markdown("### Headcorn Mockup")
+    st.markdown("## Headcorn Mockup")
     
     # Боковая панель
     with st.sidebar:
@@ -77,20 +77,6 @@ def main():
         - Загрузка на FTP и сервер
         - Оптимизация изображений
         """)
-    
-    # Обработка перегенерации
-    if "regenerate_params" in st.session_state:
-        from ui.display_results import regenerate_mockup_dynamically
-        regenerate_params = st.session_state.regenerate_params
-        regenerate_mockup_dynamically(
-            regenerate_params["mockup_index"],
-            regenerate_params["original_mockup"],
-            regenerate_params["original_result"],
-            regenerate_params["container_key"]
-        )
-        # Очищаем параметры после обработки
-        del st.session_state.regenerate_params
-        return
     
     # Основной контент
     if page == "Генерация мокапов":
