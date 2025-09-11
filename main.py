@@ -148,6 +148,19 @@ def main():
         login_form()
         return
     
+    # Обработка перегенерации
+    if "regenerate_params" in st.session_state:
+        regenerate_params = st.session_state.regenerate_params
+        regenerate_mockup_dynamically(
+            regenerate_params["mockup_index"],
+            regenerate_params["original_mockup"],
+            regenerate_params["original_result"],
+            regenerate_params["container_key"]
+        )
+        # Очищаем параметры после обработки
+        del st.session_state.regenerate_params
+        return
+    
     # Главная страница генерации мокапов
     
     # Основной заголовок
@@ -492,9 +505,6 @@ def single_generation_interface():
                         if "pattern_image" in st.session_state:
                             extended_prompt += " Создать повторяющийся паттерн с загруженным паттерном по всей поверхности товара."
                         
-                        # Показываем пользователю, что будет использовано
-                        st.info(f"📦 Товар: {mockup_style} стиль, {product_color} цвет, {product_angle} ракурс")
-                        st.info(f"🏷️ Логотип: {logo_application}, {logo_position}, {logo_size} размер, {logo_color} цвет")
                         
                         # Показываем дополнительные опции
                         additional_options = []
@@ -509,73 +519,14 @@ def single_generation_interface():
                             additional_options.append("паттерн")
                         
                         if additional_options:
-                            st.info(f"🔧 Дополнительно: {', '.join(additional_options)}")
+                            st.info(f"Дополнительно: {', '.join(additional_options)}")
                         
                         if custom_prompt.strip():
-                            st.info(f"📝 Дополнительные требования: {custom_prompt}")
+                            st.info(f"Дополнительные требования: {custom_prompt}")
                         
                         # Показываем только статус генерации
-                        st.info("🚀 Генерируем мокап с помощью AI...")
+                        st.info("Генерируем мокап с помощью AI...")
                         
-                        # Кнопка для показа отладочной информации (скрыта по умолчанию)
-                        with st.expander("🔍 Отладочная информация (для разработчиков)"):
-                            st.write("**📦 Товар:**")
-                            st.write(f"- Стиль: `{mockup_style}`")
-                            st.write(f"- Цвет: `{product_color}`")
-                            st.write(f"- Ракурс: `{product_angle}`")
-                            st.write("**🏷️ Логотип:**")
-                            st.write(f"- Тип нанесения: `{custom_application.strip() if custom_application.strip() else logo_application}` -> `{logo_application_key}`")
-                            st.write(f"- Расположение: `{logo_position}`")
-                            st.write(f"- Размер: `{logo_size}`")
-                            st.write(f"- Цвет: `{logo_color}`")
-                            st.write("**🔧 Дополнительные опции:**")
-                            st.write(f"- Добавить бирку: `{add_tag if 'add_tag' in locals() else False}`")
-                            st.write(f"- Добавить человека: `{add_person if 'add_person' in locals() else False}`")
-                            st.write(f"- Добавить шильдик: `{add_badge if 'add_badge' in locals() else False}`")
-                            if "pattern_image" in st.session_state:
-                                st.write(f"- Паттерн загружен: `Да`")
-                            else:
-                                st.write(f"- Паттерн загружен: `Нет`")
-                            st.write("**📝 Промпт:**")
-                            st.write(f"- Исходные требования: `{custom_prompt}`")
-                            st.write(f"- Расширенный промпт: `{extended_prompt}`")
-                            st.write(f"- Длина промпта: {len(extended_prompt.strip()) if extended_prompt else 0}")
-                            
-                            # Показываем, какой эффект будет использоваться
-                            material_adaptations = {
-                                "fabric": {
-                                    "embroidery": "embroidered with raised thread texture, realistic stitching details, and fabric-appropriate integration",
-                                    "printing": "printed with smooth, flat surface, crisp edges, and fabric-appropriate ink absorption",
-                                    "woven": "woven into the fabric with integrated texture, natural appearance, and seamless blending",
-                                    "embossed": "embossed with raised relief effect, realistic depth, and fabric-appropriate texture",
-                                    "sublimation": "sublimated with vibrant colors, smooth finish, and permanent integration into fabric",
-                                    "vinyl": "vinyl heat transfer with glossy finish, crisp edges, and durable application",
-                                    "heat_transfer": "heat transfer with smooth application, vibrant colors, and professional finish",
-                                    "screen_print": "screen printed with thick ink, matte finish, and durable application",
-                                    "digital_print": "digitally printed with high resolution, smooth finish, and precise details",
-                                    "laser_engraving": "laser engraved with subtle texture, permanent marking, and professional appearance"
-                                }
-                            }
-                            
-                            product_type = "fabric"  # По умолчанию
-                            material_dict = material_adaptations.get(product_type, material_adaptations["fabric"])
-                            
-                            if logo_application_key in material_dict:
-                                logo_effect = material_dict[logo_application_key]
-                                st.write(f"**Эффект логотипа:** `{logo_effect}`")
-                            else:
-                                # Используем первый доступный (не embroidery)
-                                available_methods = [k for k in material_dict.keys() if k != "embroidery"]
-                                if available_methods:
-                                    fallback_method = available_methods[0]
-                                    logo_effect = material_dict[fallback_method]
-                                    st.warning(f"⚠️ Тип нанесения '{logo_application_key}' не найден, используется: '{fallback_method}'")
-                                    st.write(f"**Эффект логотипа:** `{logo_effect}`")
-                                else:
-                                    st.error(f"❌ Тип нанесения '{logo_application_key}' не найден в словаре!")
-                                    st.write(f"**Доступные типы:** {list(material_dict.keys())}")
-                        
-                        # Убираем лишнюю отладочную информацию
                         
                         # Получаем изображения из сессии
                         product_image = st.session_state.product_image
@@ -794,7 +745,14 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             with col2:
                                 # Кнопка пересоздания с динамическим обновлением
                                 if st.button(f"Перегенерировать мокап {i+1}", key=f"regenerate_{i+1}", use_container_width=True, help="Создать новый мокап с теми же параметрами"):
-                                    regenerate_mockup_dynamically(i, mockup, result, container_key)
+                                    # Сохраняем параметры для перегенерации
+                                    st.session_state.regenerate_params = {
+                                        "mockup_index": i,
+                                        "original_mockup": mockup,
+                                        "original_result": result,
+                                        "container_key": container_key
+                                    }
+                                    st.rerun()
                             
                             # Показываем текстовый ответ если есть
                             if "text_response" in mockup and mockup["text_response"]:
