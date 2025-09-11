@@ -147,6 +147,15 @@ class OptimizedGallery:
             st.info("📁 Галерея пока пуста. Сгенерируйте несколько мокапов, чтобы увидеть их здесь!")
             return
         
+        # Кнопка очистки кэша изображений
+        if st.button("🗑️ Очистить кэш изображений", help="Очистить кэш для перезагрузки всех изображений"):
+            # Очищаем все кэшированные изображения
+            keys_to_clear = [key for key in st.session_state.keys() if key.startswith('image_cache_')]
+            for key in keys_to_clear:
+                del st.session_state[key]
+            st.success("Кэш изображений очищен!")
+            st.rerun()
+        
         # Пагинация
         start_idx = page * self.max_images_per_page
         end_idx = start_idx + self.max_images_per_page
@@ -179,17 +188,14 @@ class OptimizedGallery:
                     st.image(
                         image_data,
                         caption=mockup['filename'],
-                        use_column_width=True,
+                        use_container_width=True,
                         width=200
                     )
                 else:
-                    # Fallback - показываем URL
-                    st.image(
-                        mockup['web_url'],
-                        caption=mockup['filename'],
-                        use_column_width=True,
-                        width=200
-                    )
+                    # Fallback - показываем информацию о мокапе
+                    st.info(f"📁 {mockup['filename']}")
+                    st.write(f"**URL:** {mockup['web_url']}")
+                    st.write("❌ Изображение не загружено")
                 
                 # Метаданные
                 metadata = mockup.get('metadata', {})
@@ -201,7 +207,7 @@ class OptimizedGallery:
                 st.caption(f"**Источник:** {mockup['source']}")
                 
                 # Кнопки управления
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 
                 with col1:
                     # Кнопка скачивания
@@ -214,8 +220,19 @@ class OptimizedGallery:
                             key=f"download_{mockup['id']}",
                             use_container_width=True
                         )
+                    else:
+                        st.button("📥 Скачать", disabled=True, use_container_width=True)
                 
                 with col2:
+                    # Кнопка перезагрузки изображения
+                    if st.button("🔄", key=f"reload_{mockup['id']}", help="Перезагрузить изображение", use_container_width=True):
+                        # Очищаем кэш для этого изображения
+                        cache_key = f"image_cache_{mockup['id']}"
+                        if cache_key in st.session_state:
+                            del st.session_state[cache_key]
+                        st.rerun()
+                
+                with col3:
                     # Кнопка удаления
                     if st.button("🗑️", key=f"delete_{mockup['id']}", help="Удалить мокап", use_container_width=True):
                         self._delete_mockup(mockup)
