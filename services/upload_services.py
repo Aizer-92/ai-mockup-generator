@@ -43,10 +43,28 @@ def get_server_mockups(limit: int = 50) -> list:
         return []
 
 def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
-    """Загрузка изображения на FTP сервер"""
+    """Загрузка изображения на FTP сервер с сжатием"""
     try:
         if not config.FTP_ENABLED:
             return
+        
+        from image_processor import ImageProcessor
+        
+        # Сжимаем изображение перед загрузкой
+        processor = ImageProcessor()
+        
+        # Конвертируем bytes в PIL Image
+        from PIL import Image
+        import io
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Сжимаем изображение (максимум 1200x1200, качество 85%)
+        compressed_data = processor.compress_for_ftp(image, max_size=(1200, 1200), quality=85)
+        
+        # Показываем размеры до и после сжатия
+        original_size = processor.get_compressed_size(image_data)
+        compressed_size = processor.get_compressed_size(compressed_data)
+        st.info(f"📊 Сжатие: {original_size} → {compressed_size}")
         
         ftp_uploader = FTPUploader()
         
@@ -59,11 +77,11 @@ def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
         timestamp = int(time.time())
         filename = f"mockup_{timestamp}.jpg"
         
-        # Загружаем на FTP
-        success = ftp_uploader.upload_image(image_data, filename, metadata)
+        # Загружаем сжатое изображение на FTP
+        success = ftp_uploader.upload_image(compressed_data, filename, metadata)
         
         if success:
-            st.success(f"✅ Изображение загружено на FTP: {filename}")
+            st.success(f"✅ Изображение загружено на FTP: {filename} ({compressed_size})")
         else:
             st.warning("⚠️ Не удалось загрузить изображение на FTP")
         

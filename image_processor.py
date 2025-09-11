@@ -319,3 +319,38 @@ class ImageProcessor:
         image = image.filter(ImageFilter.UnsharpMask(radius=1, percent=150, threshold=3))
         
         return image
+    
+    def compress_for_ftp(self, image: Image.Image, max_size: Tuple[int, int] = (1200, 1200), quality: int = 85) -> bytes:
+        """
+        Сжимает изображение для загрузки на FTP сервер
+        
+        Args:
+            image: Исходное изображение
+            max_size: Максимальный размер (ширина, высота)
+            quality: Качество JPEG (1-100)
+            
+        Returns:
+            bytes: Сжатые данные изображения
+        """
+        # Конвертируем в RGB если нужно
+        if image.mode != 'RGB':
+            image = self.convert_to_rgb(image)
+        
+        # Изменяем размер с сохранением пропорций
+        image.thumbnail(max_size, Image.LANCZOS)
+        
+        # Сохраняем в байты с сжатием
+        buffer = io.BytesIO()
+        image.save(buffer, format='JPEG', quality=quality, optimize=True)
+        
+        return buffer.getvalue()
+    
+    def get_compressed_size(self, image_data: bytes) -> str:
+        """Возвращает размер сжатых данных в удобном формате"""
+        size_bytes = len(image_data)
+        if size_bytes < 1024:
+            return f"{size_bytes} B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f} KB"
+        else:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"

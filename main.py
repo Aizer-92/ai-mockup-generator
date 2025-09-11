@@ -1969,22 +1969,39 @@ def get_server_mockups(limit: int = 50) -> list:
         return []
 
 def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
-    """Загружает мокап на FTP сервер"""
+    """Загружает мокап на FTP сервер с сжатием"""
     if not FTP_ENABLED:
         return
     
     try:
         from ftp_uploader import get_ftp_uploader
+        from image_processor import ImageProcessor
         
         # Получаем FTP загрузчик
         uploader = get_ftp_uploader()
         if not uploader:
             return
         
-        # Загружаем файл
-        filename = uploader.upload_mockup(image_data, metadata, description)
+        # Сжимаем изображение перед загрузкой
+        processor = ImageProcessor()
+        
+        # Конвертируем bytes в PIL Image
+        from PIL import Image
+        import io
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Сжимаем изображение (максимум 1200x1200, качество 85%)
+        compressed_data = processor.compress_for_ftp(image, max_size=(1200, 1200), quality=85)
+        
+        # Показываем размеры до и после сжатия
+        original_size = processor.get_compressed_size(image_data)
+        compressed_size = processor.get_compressed_size(compressed_data)
+        print(f"📊 Сжатие: {original_size} → {compressed_size}")
+        
+        # Загружаем сжатый файл
+        filename = uploader.upload_mockup(compressed_data, metadata, description)
         if filename:
-            print(f"✅ Мокап загружен на FTP: {filename}")
+            print(f"✅ Мокап загружен на FTP: {filename} ({compressed_size})")
         else:
             print(f"❌ Ошибка загрузки на FTP")
             
