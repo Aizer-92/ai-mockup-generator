@@ -1054,8 +1054,7 @@ def creative_generation_interface():
         )
         
         if brandbook_files:
-            # Сохраняем файлы в session_state
-            st.session_state.creative_brandbook = brandbook_files
+            # Не сохраняем в session_state, работаем напрямую
             st.success(f"Загружено файлов: {len(brandbook_files)}")
     
     # Дополнительное описание
@@ -1080,9 +1079,9 @@ def creative_generation_interface():
             return
         
         # Генерируем концепции
-        generate_creative_concepts()
+        generate_creative_concepts(brandbook_files)
 
-def generate_creative_concepts():
+def generate_creative_concepts(brandbook_files):
     """Генерирует 5 креативных концепций товара"""
     
     st.info("Анализируем брендбук и создаем концепции...")
@@ -1091,7 +1090,6 @@ def generate_creative_concepts():
         # Получаем данные из session_state
         product_image = st.session_state.creative_product_image
         logo_image = st.session_state.creative_logo_image
-        brandbook_files = st.session_state.creative_brandbook
         custom_prompt = st.session_state.get('creative_custom_prompt', '')
         
         # Создаем промпт для анализатора
