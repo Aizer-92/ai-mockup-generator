@@ -987,53 +987,61 @@ def creative_generation_interface():
     
     with col1:
         st.markdown("**Товар**")
-        product_image = st.file_uploader(
-            "Загрузите фотографию товара",
+        product_file = st.file_uploader(
+            "Загрузите товар",
             type=['jpg', 'jpeg', 'png', 'webp'],
-            key="creative_product_image",
-            help="Фотография товара для создания концепций"
+            key="creative_product"
         )
         
-        if product_image:
-            # Конвертируем RGBA в RGB если нужно
-            from PIL import Image
-            import io
-            image = Image.open(product_image)
-            if image.mode in ['RGBA', 'LA', 'P']:
+        if product_file:
+            product_image = Image.open(product_file)
+            # Конвертируем в RGB для совместимости с JPEG
+            if product_image.mode in ('RGBA', 'LA', 'P'):
                 from image_processor import ImageProcessor
                 processor = ImageProcessor()
-                image = processor.convert_to_rgb(image)
-            
-            # Сохраняем как bytes в session_state
-            buffer = io.BytesIO()
-            image.save(buffer, format='JPEG', quality=95)
-            st.session_state.creative_product_image = buffer.getvalue()
-            st.image(image, caption="Товар", use_column_width=True)
+                product_image = processor.convert_to_rgb(product_image)
+            st.session_state.creative_product_image = product_image
+            preview_size = (120, 120)
+            preview_image = product_image.copy()
+            preview_image.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_image, caption="Товар", width=120)
+            st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
+        elif "creative_product_image" in st.session_state:
+            product_image = st.session_state.creative_product_image
+            preview_size = (120, 120)
+            preview_image = product_image.copy()
+            preview_image.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_image, caption="Товар", width=120)
+            st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
     
     with col2:
         st.markdown("**Логотип**")
-        logo_image = st.file_uploader(
+        logo_file = st.file_uploader(
             "Загрузите логотип",
             type=['jpg', 'jpeg', 'png', 'webp'],
-            key="creative_logo_image",
-            help="Логотип для интеграции в концепции"
+            key="creative_logo"
         )
         
-        if logo_image:
-            # Конвертируем RGBA в RGB если нужно
-            from PIL import Image
-            import io
-            image = Image.open(logo_image)
-            if image.mode in ['RGBA', 'LA', 'P']:
+        if logo_file:
+            logo_image = Image.open(logo_file)
+            # Конвертируем в RGB для совместимости с JPEG
+            if logo_image.mode in ('RGBA', 'LA', 'P'):
                 from image_processor import ImageProcessor
                 processor = ImageProcessor()
-                image = processor.convert_to_rgb(image)
-            
-            # Сохраняем как bytes в session_state
-            buffer = io.BytesIO()
-            image.save(buffer, format='JPEG', quality=95)
-            st.session_state.creative_logo_image = buffer.getvalue()
-            st.image(image, caption="Логотип", use_column_width=True)
+                logo_image = processor.convert_to_rgb(logo_image)
+            st.session_state.creative_logo_image = logo_image
+            preview_size = (120, 120)
+            preview_logo = logo_image.copy()
+            preview_logo.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_logo, caption="Логотип", width=120)
+            st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
+        elif "creative_logo_image" in st.session_state:
+            logo_image = st.session_state.creative_logo_image
+            preview_size = (120, 120)
+            preview_logo = logo_image.copy()
+            preview_logo.thumbnail(preview_size, Image.LANCZOS)
+            st.image(preview_logo, caption="Логотип", width=120)
+            st.caption(f"{logo_image.size[0]}x{logo_image.size[1]}")
     
     with col3:
         st.markdown("**Брендбук**")
@@ -1067,7 +1075,7 @@ def creative_generation_interface():
             st.error("❌ Пожалуйста, загрузите товар и логотип")
             return
         
-        if not st.session_state.get('creative_brandbook'):
+        if not brandbook_files:
             st.error("❌ Пожалуйста, загрузите брендбук")
             return
         
@@ -1080,17 +1088,11 @@ def generate_creative_concepts():
     st.info("Анализируем брендбук и создаем концепции...")
     
     try:
-        # Получаем данные
-        product_image_bytes = st.session_state.creative_product_image
-        logo_image_bytes = st.session_state.creative_logo_image
+        # Получаем данные из session_state
+        product_image = st.session_state.creative_product_image
+        logo_image = st.session_state.creative_logo_image
         brandbook_files = st.session_state.creative_brandbook
         custom_prompt = st.session_state.get('creative_custom_prompt', '')
-        
-        # Конвертируем bytes в PIL Image
-        from PIL import Image
-        import io
-        product_image = Image.open(io.BytesIO(product_image_bytes))
-        logo_image = Image.open(io.BytesIO(logo_image_bytes))
         
         # Создаем промпт для анализатора
         analysis_prompt = f"""
@@ -1116,14 +1118,23 @@ def generate_creative_concepts():
         files_to_analyze = []
         
         # Добавляем изображения товара и логотипа
+        # Конвертируем PIL Image в bytes для отправки
+        import io
+        
+        # Товар
+        product_buffer = io.BytesIO()
+        product_image.save(product_buffer, format='JPEG', quality=95)
         files_to_analyze.append({
-            'data': product_image_bytes,
+            'data': product_buffer.getvalue(),
             'mime_type': 'image/jpeg',
             'name': 'product.jpg'
         })
         
+        # Логотип
+        logo_buffer = io.BytesIO()
+        logo_image.save(logo_buffer, format='JPEG', quality=95)
         files_to_analyze.append({
-            'data': logo_image_bytes,
+            'data': logo_buffer.getvalue(),
             'mime_type': 'image/jpeg', 
             'name': 'logo.jpg'
         })
