@@ -1213,10 +1213,17 @@ def generate_creative_concepts(brandbook_files):
             """
             
             # Генерируем мокап
-            result = generator.generate_mockup(
-                product_image, logo_image,
-                "modern", "embroidery", generation_prompt,
-                "как на фото", "спереди", "центр", "средний", "как на фото"
+            result = generator.generate_mockups(
+                product_image=product_image,
+                logo_image=logo_image,
+                style="modern",
+                logo_application="embroidery",
+                custom_prompt=generation_prompt,
+                product_color="как на фото",
+                product_angle="спереди",
+                logo_position="центр",
+                logo_size="средний",
+                logo_color="как на фото"
             )
             
             if result and "mockups" in result and "gemini_mockups" in result["mockups"]:
