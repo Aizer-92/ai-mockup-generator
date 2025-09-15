@@ -1146,12 +1146,12 @@ def generate_creative_concepts(brandbook_files):
                 with st.expander(f"Концепция {concept_data['index']} - Полная версия", expanded=True):
                     st.write(concept_data['concept'])
                     
-                    # Показываем полное изображение 800x800
+                    # Показываем полное изображение 1200x1200
                     mockup = concept_data['mockup']
                     if "image_data" in mockup:
                         full_image = Image.open(io.BytesIO(mockup["image_data"]))
-                        # Изменяем размер до 800x800 с сохранением пропорций
-                        full_image.thumbnail((800, 800), Image.LANCZOS)
+                        # Изменяем размер до 1200x1200 с сохранением пропорций
+                        full_image.thumbnail((1200, 1200), Image.LANCZOS)
                         st.image(full_image, use_column_width=True)
                     
                     # Кнопки действий
@@ -1379,15 +1379,15 @@ def generate_creative_concepts(brandbook_files):
             if result and "mockups" in result and "gemini_mockups" in result["mockups"]:
                 mockups = result["mockups"]["gemini_mockups"]
                 if mockups:
-                    # Изменяем размер изображения до 800x800
+                    # Изменяем размер изображения до 1200x1200
                     mockup = mockups[0].copy()
                     if "image_data" in mockup:
                         from PIL import Image
                         import io
                         # Открываем изображение
                         image = Image.open(io.BytesIO(mockup["image_data"]))
-                        # Изменяем размер до 800x800 с сохранением пропорций
-                        image.thumbnail((800, 800), Image.LANCZOS)
+                        # Изменяем размер до 1200x1200 с сохранением пропорций
+                        image.thumbnail((1200, 1200), Image.LANCZOS)
                         # Сохраняем обратно в bytes
                         buffer = io.BytesIO()
                         image.save(buffer, format='JPEG', quality=95)
@@ -1469,12 +1469,12 @@ def generate_creative_concepts(brandbook_files):
                     with st.expander(f"Концепция {concept_data['index']} - Полная версия", expanded=True):
                         st.write(concept_data['concept'])
                         
-                        # Показываем полное изображение 800x800
+                        # Показываем полное изображение 1200x1200
                         mockup = concept_data['mockup']
                         if "image_data" in mockup:
                             full_image = Image.open(io.BytesIO(mockup["image_data"]))
-                            # Изменяем размер до 800x800 с сохранением пропорций
-                            full_image.thumbnail((800, 800), Image.LANCZOS)
+                            # Изменяем размер до 1200x1200 с сохранением пропорций
+                            full_image.thumbnail((1200, 1200), Image.LANCZOS)
                             st.image(full_image, use_column_width=True)
                         
                         # Кнопки действий
