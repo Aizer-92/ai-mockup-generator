@@ -1346,7 +1346,6 @@ def generate_creative_concepts(brandbook_files):
                     # Кнопка для показа полной версии
                     if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
                         st.session_state[f"show_concept_{concept_data['index']}"] = True
-                        st.rerun()
             
             # Показываем полные версии концептов
             for concept_data in generated_concepts:
@@ -1381,7 +1380,6 @@ def generate_creative_concepts(brandbook_files):
                         # Кнопка закрытия
                         if st.button(f"Закрыть", key=f"close_concept_{concept_data['index']}"):
                             st.session_state[f"show_concept_{concept_data['index']}"] = False
-                            st.rerun()
         else:
             st.error("❌ Не удалось сгенерировать изображения концепций")
             
