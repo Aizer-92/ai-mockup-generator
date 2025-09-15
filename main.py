@@ -1111,20 +1111,34 @@ def generate_creative_concepts(brandbook_files):
                 # Показываем превью изображения
                 mockup = concept_data['mockup']
                 if "image_data" in mockup:
-                    # Создаем превью изображения 200x200
+                    # Создаем превью изображения 400x400
                     from PIL import Image
                     import io
                     full_image = Image.open(io.BytesIO(mockup["image_data"]))
                     preview_image = full_image.copy()
-                    preview_image.thumbnail((200, 200), Image.LANCZOS)
+                    preview_image.thumbnail((400, 400), Image.LANCZOS)
                     
                     # Показываем превью
                     st.image(preview_image, use_column_width=True, caption=f"Концепция {concept_data['index']}")
                 
-                # Кнопка для показа полной версии
-                if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
-                    st.session_state[f"show_concept_{concept_data['index']}"] = True
-                    st.rerun()
+                # Кнопки для показа полной версии и скачивания
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
+                        st.session_state[f"show_concept_{concept_data['index']}"] = True
+                        st.rerun()
+                with col2:
+                    # Создаем кнопку скачивания напрямую
+                    mockup = concept_data['mockup']
+                    if "image_data" in mockup:
+                        st.download_button(
+                            label="Скачать",
+                            data=mockup["image_data"],
+                            file_name=f"concept_{concept_data['index']}.jpg",
+                            mime="image/jpeg",
+                            key=f"download_btn_{i}_{concept_data['index']}",
+                            use_container_width=True
+                        )
         
         # Показываем полные версии концептов
         for concept_data in st.session_state.creative_generated_concepts:
@@ -1420,20 +1434,34 @@ def generate_creative_concepts(brandbook_files):
                     # Показываем превью изображения
                     mockup = concept_data['mockup']
                     if "image_data" in mockup:
-                        # Создаем превью изображения 200x200
+                        # Создаем превью изображения 400x400
                         from PIL import Image
                         import io
                         full_image = Image.open(io.BytesIO(mockup["image_data"]))
                         preview_image = full_image.copy()
-                        preview_image.thumbnail((200, 200), Image.LANCZOS)
+                        preview_image.thumbnail((400, 400), Image.LANCZOS)
                         
                         # Показываем превью
                         st.image(preview_image, use_column_width=True, caption=f"Концепция {concept_data['index']}")
                     
-                    # Кнопка для показа полной версии
-                    if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
-                        st.session_state[f"show_concept_{concept_data['index']}"] = True
-                        st.rerun()
+                    # Кнопки для показа полной версии и скачивания
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
+                            st.session_state[f"show_concept_{concept_data['index']}"] = True
+                            st.rerun()
+                    with col2:
+                        # Создаем кнопку скачивания напрямую
+                        mockup = concept_data['mockup']
+                        if "image_data" in mockup:
+                            st.download_button(
+                                label="Скачать",
+                                data=mockup["image_data"],
+                                file_name=f"concept_{concept_data['index']}.jpg",
+                                mime="image/jpeg",
+                                key=f"download_btn_{i}_{concept_data['index']}",
+                                use_container_width=True
+                            )
             
             # Показываем полные версии концептов
             for concept_data in display_concepts:

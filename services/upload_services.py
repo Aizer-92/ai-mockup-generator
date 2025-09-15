@@ -72,25 +72,13 @@ def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
             st.warning("⚠️ Не удалось инициализировать FTP загрузчик")
             return
         
-        # Подключаемся к FTP
-        if not ftp_uploader.connect():
-            st.warning("⚠️ Не удалось подключиться к FTP серверу")
-            return
-        
-        # Создаем имя файла
-        timestamp = int(time.time())
-        filename = f"mockup_{timestamp}.jpg"
-        
         # Загружаем сжатое изображение на FTP
-        success = ftp_uploader.upload_image(compressed_data, filename, metadata)
+        filename = ftp_uploader.upload_mockup(compressed_data, metadata, description)
         
-        if success:
+        if filename:
             st.success(f"✅ Изображение загружено на FTP: {filename} ({compressed_size})")
         else:
             st.warning("⚠️ Не удалось загрузить изображение на FTP")
-        
-        # Закрываем соединение
-        ftp_uploader.disconnect()
         
     except Exception as e:
         st.error(f"❌ Ошибка загрузки на FTP: {e}")
@@ -107,16 +95,8 @@ def get_ftp_mockups(limit: int = 50) -> list:
             st.warning("⚠️ Не удалось инициализировать FTP загрузчик")
             return
         
-        # Подключаемся к FTP
-        if not ftp_uploader.connect():
-            st.warning("⚠️ Не удалось подключиться к FTP серверу")
-            return []
-        
         # Получаем список файлов
-        files = ftp_uploader.list_files(limit)
-        
-        # Закрываем соединение
-        ftp_uploader.disconnect()
+        files = ftp_uploader.list_files()
         
         return files
         

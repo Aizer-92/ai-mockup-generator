@@ -179,3 +179,4 @@ def batch_image_upload_interface():
             
         except Exception as e:
             st.error(f"❌ Ошибка загрузки паттерна: {e}")
+
