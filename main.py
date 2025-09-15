@@ -1282,7 +1282,7 @@ def generate_creative_concepts(brandbook_files):
             # Используем первое изображение товара для генерации мокапа
             main_product_image = product_images[0]
             
-            # Генерируем мокап с размером 800x800
+            # Генерируем мокап
             result = generator.generate_mockups(
                 product_image=main_product_image,
                 logo_image=logo_image,
@@ -1293,16 +1293,29 @@ def generate_creative_concepts(brandbook_files):
                 product_angle="спереди",
                 logo_position="центр",
                 logo_size="средний",
-                logo_color="как на фото",
-                image_size=(800, 800)  # Указываем размер изображения
+                logo_color="как на фото"
             )
             
             if result and "mockups" in result and "gemini_mockups" in result["mockups"]:
                 mockups = result["mockups"]["gemini_mockups"]
                 if mockups:
+                    # Изменяем размер изображения до 800x800
+                    mockup = mockups[0].copy()
+                    if "image_data" in mockup:
+                        from PIL import Image
+                        import io
+                        # Открываем изображение
+                        image = Image.open(io.BytesIO(mockup["image_data"]))
+                        # Изменяем размер до 800x800 с сохранением пропорций
+                        image.thumbnail((800, 800), Image.LANCZOS)
+                        # Сохраняем обратно в bytes
+                        buffer = io.BytesIO()
+                        image.save(buffer, format='JPEG', quality=95)
+                        mockup["image_data"] = buffer.getvalue()
+                    
                     generated_concepts.append({
                         'concept': concept,
-                        'mockup': mockups[0],
+                        'mockup': mockup,
                         'index': i
                     })
         
