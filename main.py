@@ -987,32 +987,45 @@ def creative_generation_interface():
     
     with col1:
         st.markdown("**Товар**")
-        product_file = st.file_uploader(
-            "Загрузите товар",
+        product_files = st.file_uploader(
+            "Загрузите товар с разных ракурсов",
             type=['jpg', 'jpeg', 'png', 'webp'],
-            key="creative_product"
+            key="creative_product",
+            accept_multiple_files=True,
+            help="Загрузите несколько фотографий товара с разных ракурсов для лучшего анализа"
         )
         
-        if product_file:
-            product_image = Image.open(product_file)
-            # Конвертируем в RGB для совместимости с JPEG
-            if product_image.mode in ('RGBA', 'LA', 'P'):
-                from image_processor import ImageProcessor
-                processor = ImageProcessor()
-                product_image = processor.convert_to_rgb(product_image)
-            st.session_state.creative_product_image = product_image
-            preview_size = (120, 120)
-            preview_image = product_image.copy()
-            preview_image.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_image, caption="Товар", width=120)
-            st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
-        elif "creative_product_image" in st.session_state:
-            product_image = st.session_state.creative_product_image
-            preview_size = (120, 120)
-            preview_image = product_image.copy()
-            preview_image.thumbnail(preview_size, Image.LANCZOS)
-            st.image(preview_image, caption="Товар", width=120)
-            st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
+        if product_files:
+            # Обрабатываем все изображения
+            processed_images = []
+            for i, product_file in enumerate(product_files):
+                product_image = Image.open(product_file)
+                # Конвертируем в RGB для совместимости с JPEG
+                if product_image.mode in ('RGBA', 'LA', 'P'):
+                    from image_processor import ImageProcessor
+                    processor = ImageProcessor()
+                    product_image = processor.convert_to_rgb(product_image)
+                processed_images.append(product_image)
+            
+            st.session_state.creative_product_images = processed_images
+            
+            # Показываем превью всех изображений
+            st.markdown(f"**Загружено {len(processed_images)} фотографий:**")
+            for i, product_image in enumerate(processed_images):
+                preview_size = (120, 120)
+                preview_image = product_image.copy()
+                preview_image.thumbnail(preview_size, Image.LANCZOS)
+                st.image(preview_image, caption=f"Ракурс {i+1}", width=120)
+                st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
+        elif "creative_product_images" in st.session_state:
+            processed_images = st.session_state.creative_product_images
+            st.markdown(f"**Загружено {len(processed_images)} фотографий:**")
+            for i, product_image in enumerate(processed_images):
+                preview_size = (120, 120)
+                preview_image = product_image.copy()
+                preview_image.thumbnail(preview_size, Image.LANCZOS)
+                st.image(preview_image, caption=f"Ракурс {i+1}", width=120)
+                st.caption(f"{product_image.size[0]}x{product_image.size[1]}")
     
     with col2:
         st.markdown("**Логотип**")
@@ -1070,8 +1083,8 @@ def creative_generation_interface():
     # Кнопка генерации
     st.markdown("---")
     if st.button("Сгенерировать концепции", key="creative_generate", use_container_width=True, type="primary"):
-        if not st.session_state.get('creative_product_image') or not st.session_state.get('creative_logo_image'):
-            st.error("❌ Пожалуйста, загрузите товар и логотип")
+        if not st.session_state.get('creative_product_images') or not st.session_state.get('creative_logo_image'):
+            st.error("❌ Пожалуйста, загрузите товар (хотя бы одну фотографию) и логотип")
             return
         
         if not brandbook_files:
@@ -1088,7 +1101,7 @@ def generate_creative_concepts(brandbook_files):
     
     try:
         # Получаем данные из session_state
-        product_image = st.session_state.creative_product_image
+        product_images = st.session_state.creative_product_images
         logo_image = st.session_state.creative_logo_image
         custom_prompt = st.session_state.get('creative_custom_prompt', '')
         
@@ -1122,7 +1135,7 @@ def generate_creative_concepts(brandbook_files):
         
         # Анализ товара
         product_analysis_prompt = f"""
-        Проанализируй этот товар и определи:
+        Проанализируй эти фотографии товара с разных ракурсов и определи:
         1. Тип товара и его ключевые особенности
         2. Материал и текстуру
         3. Цветовую гамму
@@ -1130,26 +1143,32 @@ def generate_creative_concepts(brandbook_files):
         5. Целевую аудиторию
         6. Возможности для дизайнерских изменений
         7. Современные тренды, которые подходят для этого типа товара
+        8. Особенности формы и конструкции товара
+        9. Лучшие ракурсы для размещения логотипа
+        10. Потенциал для различных стилей дизайна
         
-        Ответь кратко и по делу.
+        Ответь кратко и по делу, учитывая все ракурсы.
         """
         
         # Отправляем в анализатор
         from gemini_client import GeminiClient
         gemini_client = GeminiClient()
         
-        # Конвертируем товар в bytes для анализа
+        # Конвертируем все изображения товара в bytes для анализа
         import io
-        product_buffer = io.BytesIO()
-        product_image.save(product_buffer, format='JPEG', quality=95)
-        product_image_bytes = product_buffer.getvalue()
+        product_files_for_analysis = []
+        for i, product_image in enumerate(product_images):
+            product_buffer = io.BytesIO()
+            product_image.save(product_buffer, format='JPEG', quality=95)
+            product_image_bytes = product_buffer.getvalue()
+            product_files_for_analysis.append({
+                'data': product_image_bytes,
+                'mime_type': 'image/jpeg',
+                'name': f'product_angle_{i+1}.jpg'
+            })
         
         # Анализируем товар
-        product_analysis = gemini_client.generate_with_files(product_analysis_prompt, [{
-            'data': product_image_bytes,
-            'mime_type': 'image/jpeg',
-            'name': 'product.jpg'
-        }])
+        product_analysis = gemini_client.generate_with_files(product_analysis_prompt, product_files_for_analysis)
         
         if product_analysis:
             st.success("✅ Анализ товара завершен")
@@ -1162,18 +1181,19 @@ def generate_creative_concepts(brandbook_files):
         # Подготавливаем файлы для анализа
         files_to_analyze = []
         
-        # Добавляем изображения товара и логотипа
+        # Добавляем все изображения товара
         # Конвертируем PIL Image в bytes для отправки
         import io
         
-        # Товар
-        product_buffer = io.BytesIO()
-        product_image.save(product_buffer, format='JPEG', quality=95)
-        files_to_analyze.append({
-            'data': product_buffer.getvalue(),
-            'mime_type': 'image/jpeg',
-            'name': 'product.jpg'
-        })
+        # Все ракурсы товара
+        for i, product_image in enumerate(product_images):
+            product_buffer = io.BytesIO()
+            product_image.save(product_buffer, format='JPEG', quality=95)
+            files_to_analyze.append({
+                'data': product_buffer.getvalue(),
+                'mime_type': 'image/jpeg',
+                'name': f'product_angle_{i+1}.jpg'
+            })
         
         # Логотип
         logo_buffer = io.BytesIO()
@@ -1259,9 +1279,12 @@ def generate_creative_concepts(brandbook_files):
             {custom_prompt}
             """
             
+            # Используем первое изображение товара для генерации мокапа
+            main_product_image = product_images[0]
+            
             # Генерируем мокап
             result = generator.generate_mockups(
-                product_image=product_image,
+                product_image=main_product_image,
                 logo_image=logo_image,
                 style="modern",
                 logo_application="embroidery",
