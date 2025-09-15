@@ -1313,6 +1313,23 @@ def generate_creative_concepts(brandbook_files):
                         image.save(buffer, format='JPEG', quality=95)
                         mockup["image_data"] = buffer.getvalue()
                     
+                    # Загружаем на FTP
+                    try:
+                        from services.upload_services import upload_to_ftp
+                        upload_to_ftp(
+                            image_data=mockup["image_data"],
+                            metadata={
+                                'concept': concept,
+                                'generation_type': 'creative',
+                                'concept_index': i,
+                                'custom_prompt': custom_prompt
+                            },
+                            description=f"Креативная концепция {i+1}: {concept[:50]}..."
+                        )
+                        st.success(f"✅ Концепция {i+1} загружена на FTP")
+                    except Exception as e:
+                        st.warning(f"⚠️ Не удалось загрузить концепцию {i+1} на FTP: {str(e)}")
+                    
                     generated_concepts.append({
                         'concept': concept,
                         'mockup': mockup,
@@ -1948,6 +1965,23 @@ def display_batch_results(batch_result: dict):
                                         key=f"download_batch_{result['index']}",
                                         use_container_width=True
                                     )
+                                    
+                                    # Загружаем на FTP
+                                    try:
+                                        from services.upload_services import upload_to_ftp
+                                        upload_to_ftp(
+                                            image_data=image_data,
+                                            metadata={
+                                                'product_name': product_name,
+                                                'generation_type': 'batch',
+                                                'item_index': result['index'],
+                                                'prompt_data': result.get("prompt_data", {})
+                                            },
+                                            description=f"Пакетная обработка: {product_name}"
+                                        )
+                                        st.success(f"✅ {product_name} загружен на FTP")
+                                    except Exception as e:
+                                        st.warning(f"⚠️ Не удалось загрузить {product_name} на FTP: {str(e)}")
                                 
                                 with col_regenerate:
                                     # Кнопка пересоздания
