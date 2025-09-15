@@ -66,7 +66,11 @@ def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
         compressed_size = processor.get_compressed_size(compressed_data)
         st.info(f"📊 Сжатие: {original_size} → {compressed_size}")
         
-        ftp_uploader = FTPUploader()
+        from ftp_uploader import get_ftp_uploader
+        ftp_uploader = get_ftp_uploader()
+        if not ftp_uploader:
+            st.warning("⚠️ Не удалось инициализировать FTP загрузчик")
+            return
         
         # Подключаемся к FTP
         if not ftp_uploader.connect():
@@ -97,7 +101,11 @@ def get_ftp_mockups(limit: int = 50) -> list:
         if not config.FTP_ENABLED:
             return []
         
-        ftp_uploader = FTPUploader()
+        from ftp_uploader import get_ftp_uploader
+        ftp_uploader = get_ftp_uploader()
+        if not ftp_uploader:
+            st.warning("⚠️ Не удалось инициализировать FTP загрузчик")
+            return
         
         # Подключаемся к FTP
         if not ftp_uploader.connect():
