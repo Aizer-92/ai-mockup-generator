@@ -1282,7 +1282,7 @@ def generate_creative_concepts(brandbook_files):
             # Используем первое изображение товара для генерации мокапа
             main_product_image = product_images[0]
             
-            # Генерируем мокап
+            # Генерируем мокап с размером 800x800
             result = generator.generate_mockups(
                 product_image=main_product_image,
                 logo_image=logo_image,
@@ -1293,7 +1293,8 @@ def generate_creative_concepts(brandbook_files):
                 product_angle="спереди",
                 logo_position="центр",
                 logo_size="средний",
-                logo_color="как на фото"
+                logo_color="как на фото",
+                image_size=(800, 800)  # Указываем размер изображения
             )
             
             if result and "mockups" in result and "gemini_mockups" in result["mockups"]:
@@ -1319,20 +1320,20 @@ def generate_creative_concepts(brandbook_files):
                     # Показываем превью изображения
                     mockup = concept_data['mockup']
                     if "image_data" in mockup:
-                        # Создаем превью изображения
+                        # Создаем превью изображения 200x200
                         from PIL import Image
                         import io
-                        preview_image = Image.open(io.BytesIO(mockup["image_data"]))
+                        full_image = Image.open(io.BytesIO(mockup["image_data"]))
+                        preview_image = full_image.copy()
                         preview_image.thumbnail((200, 200), Image.LANCZOS)
                         
                         # Показываем превью
-                        if st.image(preview_image, use_column_width=True, caption=f"Концепция {concept_data['index']}"):
-                            # При клике на изображение показываем полную версию
-                            st.session_state[f"show_concept_{concept_data['index']}"] = True
+                        st.image(preview_image, use_column_width=True, caption=f"Концепция {concept_data['index']}")
                     
                     # Кнопка для показа полной версии
-                    if st.button(f"Подробнее", key=f"show_concept_{concept_data['index']}", use_container_width=True):
+                    if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
                         st.session_state[f"show_concept_{concept_data['index']}"] = True
+                        st.rerun()
             
             # Показываем полные версии концептов
             for concept_data in generated_concepts:
@@ -1340,10 +1341,13 @@ def generate_creative_concepts(brandbook_files):
                     with st.expander(f"Концепция {concept_data['index']} - Полная версия", expanded=True):
                         st.write(concept_data['concept'])
                         
-                        # Показываем полное изображение
+                        # Показываем полное изображение 800x800
                         mockup = concept_data['mockup']
                         if "image_data" in mockup:
-                            st.image(mockup["image_data"], use_column_width=True)
+                            full_image = Image.open(io.BytesIO(mockup["image_data"]))
+                            # Изменяем размер до 800x800 с сохранением пропорций
+                            full_image.thumbnail((800, 800), Image.LANCZOS)
+                            st.image(full_image, use_column_width=True)
                         
                         # Кнопки действий
                         col1, col2 = st.columns(2)
