@@ -1087,9 +1087,9 @@ def creative_generation_interface():
             st.error("❌ Пожалуйста, загрузите товар (хотя бы одну фотографию) и логотип")
             return
         
+        # Брендбук не обязателен, но если загружен - будет использован
         if not brandbook_files:
-            st.error("❌ Пожалуйста, загрузите брендбук")
-            return
+            st.info("ℹ️ Брендбук не загружен - концепции будут созданы на основе товара и логотипа")
         
         # Генерируем концепции
         generate_creative_concepts(brandbook_files)
@@ -1192,7 +1192,7 @@ def generate_creative_concepts(brandbook_files):
         ПЕРЕД СОЗДАНИЕМ КОНЦЕПЦИЙ:
         1. Изучи современные тренды в мерчендайзинге 2024-2025
         2. Проанализируй товар и определи его ключевые особенности
-        3. Изучи брендбук и выдели основные элементы бренда
+        3. Если предоставлен брендбук - изучи его и выдели основные элементы бренда
         4. Подумай о том, как сделать концепции яркими и цепляющими
         
         ТРЕБОВАНИЯ К КОНЦЕПЦИЯМ:
@@ -1281,7 +1281,7 @@ def generate_creative_concepts(brandbook_files):
             ПЕРЕД СОЗДАНИЕМ КОНЦЕПЦИЙ:
             1. Изучи современные тренды в мерчендайзинге 2024-2025
             2. Используй результаты анализа товара выше для создания релевантных концепций
-            3. Изучи брендбук и выдели основные элементы бренда
+            3. Если предоставлен брендбук - изучи его и выдели основные элементы бренда
             4. Подумай о том, как сделать концепции яркими и цепляющими, учитывая специфику данного типа товара
             
             ТРЕБОВАНИЯ К КОНЦЕПЦИЯМ:
@@ -1325,32 +1325,33 @@ def generate_creative_concepts(brandbook_files):
             'name': 'logo.jpg'
         })
         
-        # Добавляем файлы брендбука
-        for i, file in enumerate(brandbook_files):
-            if file.type == 'application/pdf':
-                files_to_analyze.append({
-                    'data': file,
-                    'mime_type': 'application/pdf',
-                    'name': f'brandbook_{i}.pdf'
-                })
-            else:
-                # Конвертируем изображения в RGB если нужно
-                from PIL import Image
-                import io
-                image = Image.open(file)
-                if image.mode in ['RGBA', 'LA', 'P']:
-                    from image_processor import ImageProcessor
-                    processor = ImageProcessor()
-                    image = processor.convert_to_rgb(image)
-                
-                # Конвертируем в bytes
-                buffer = io.BytesIO()
-                image.save(buffer, format='JPEG', quality=95)
-                files_to_analyze.append({
-                    'data': buffer.getvalue(),
-                    'mime_type': 'image/jpeg',
-                    'name': f'brandbook_{i}.jpg'
-                })
+        # Добавляем файлы брендбука (если загружены)
+        if brandbook_files:
+            for i, file in enumerate(brandbook_files):
+                if file.type == 'application/pdf':
+                    files_to_analyze.append({
+                        'data': file,
+                        'mime_type': 'application/pdf',
+                        'name': f'brandbook_{i}.pdf'
+                    })
+                else:
+                    # Конвертируем изображения в RGB если нужно
+                    from PIL import Image
+                    import io
+                    image = Image.open(file)
+                    if image.mode in ['RGBA', 'LA', 'P']:
+                        from image_processor import ImageProcessor
+                        processor = ImageProcessor()
+                        image = processor.convert_to_rgb(image)
+                    
+                    # Конвертируем в bytes
+                    buffer = io.BytesIO()
+                    image.save(buffer, format='JPEG', quality=95)
+                    files_to_analyze.append({
+                        'data': buffer.getvalue(),
+                        'mime_type': 'image/jpeg',
+                        'name': f'brandbook_{i}.jpg'
+                    })
         
         # Получаем концепции от анализатора
         concepts_response = gemini_client.generate_with_files(analysis_prompt, files_to_analyze)
@@ -2591,14 +2592,8 @@ def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
         # Показываем размеры до и после сжатия
         original_size = processor.get_compressed_size(image_data)
         compressed_size = processor.get_compressed_size(compressed_data)
-        print(f"📊 Сжатие: {original_size} → {compressed_size}")
-        
-        # Загружаем сжатый файл
+        # Сжатие и загрузка на FTP (без уведомлений)
         filename = uploader.upload_mockup(compressed_data, metadata, description)
-        if filename:
-            print(f"✅ Мокап загружен на FTP: {filename} ({compressed_size})")
-        else:
-            print(f"❌ Ошибка загрузки на FTP")
             
     except Exception as e:
         print(f"❌ Ошибка загрузки на FTP: {e}")

@@ -61,24 +61,14 @@ def upload_to_ftp(image_data: bytes, metadata: dict, description: str = ""):
         # Сжимаем изображение (максимум 1200x1200, качество 85%)
         compressed_data = processor.compress_for_ftp(image, max_size=(1200, 1200), quality=85)
         
-        # Показываем размеры до и после сжатия
-        original_size = processor.get_compressed_size(image_data)
-        compressed_size = processor.get_compressed_size(compressed_data)
-        st.info(f"📊 Сжатие: {original_size} → {compressed_size}")
-        
+        # Сжатие и загрузка на FTP (без уведомлений)
         from ftp_uploader import get_ftp_uploader
         ftp_uploader = get_ftp_uploader()
         if not ftp_uploader:
-            st.warning("⚠️ Не удалось инициализировать FTP загрузчик")
             return
         
         # Загружаем сжатое изображение на FTP
         filename = ftp_uploader.upload_mockup(compressed_data, metadata, description)
-        
-        if filename:
-            st.success(f"✅ Изображение загружено на FTP: {filename} ({compressed_size})")
-        else:
-            st.warning("⚠️ Не удалось загрузить изображение на FTP")
         
     except Exception as e:
         st.error(f"❌ Ошибка загрузки на FTP: {e}")
