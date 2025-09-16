@@ -1189,7 +1189,7 @@ def generate_creative_concepts(brandbook_files):
                 # Кнопки для показа полной версии и скачивания
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
+                    if st.button(f"Подробнее", key=f"show_concept_saved_{i}_{concept_data['index']}", use_container_width=True):
                         st.session_state[f"show_concept_{concept_data['index']}"] = True
                         st.rerun()
                 with col2:
@@ -1201,7 +1201,7 @@ def generate_creative_concepts(brandbook_files):
                             data=mockup["image_data"],
                             file_name=f"concept_{concept_data['index']}.jpg",
                             mime="image/jpeg",
-                            key=f"download_btn_{i}_{concept_data['index']}",
+                            key=f"download_btn_saved_{i}_{concept_data['index']}",
                             use_container_width=True
                         )
         
@@ -1556,7 +1556,7 @@ def generate_creative_concepts(brandbook_files):
                     # Кнопки для показа полной версии и скачивания
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button(f"Подробнее", key=f"show_concept_{i}_{concept_data['index']}", use_container_width=True):
+                        if st.button(f"Подробнее", key=f"show_concept_new_{i}_{concept_data['index']}", use_container_width=True):
                             st.session_state[f"show_concept_{concept_data['index']}"] = True
                             st.rerun()
                     with col2:
@@ -1568,7 +1568,7 @@ def generate_creative_concepts(brandbook_files):
                                 data=mockup["image_data"],
                                 file_name=f"concept_{concept_data['index']}.jpg",
                                 mime="image/jpeg",
-                                key=f"download_btn_{i}_{concept_data['index']}",
+                                key=f"download_btn_new_{i}_{concept_data['index']}",
                                 use_container_width=True
                             )
             
