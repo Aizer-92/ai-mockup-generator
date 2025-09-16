@@ -1240,7 +1240,8 @@ def generate_creative_concepts(brandbook_files):
                         st.session_state[f"show_concept_{concept_data['index']}"] = False
                         st.rerun()
         
-        return
+        # Если есть сохраненные результаты, показываем их, но не прерываем выполнение
+        # return
     
     st.info("Анализируем брендбук и создаем концепции...")
     
