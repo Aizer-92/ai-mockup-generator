@@ -725,28 +725,29 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             
                             # image_data уже является bytes от Gemini
                             image_data = mockup["image_data"]
+                            image = Image.open(io.BytesIO(image_data))
                             
-                            # Стандартизируем размер изображения
-                            processor = ImageProcessor()
-                            standardized_data = processor.standardize_mockup_size(image_data)
-                            
-                            # Создаем превью для отображения
-                            preview_data = processor.create_preview_image(standardized_data)
-                            
-                            # Открываем превью для отображения
-                            preview_image = Image.open(io.BytesIO(preview_data))
+                            # Конвертируем в RGB для совместимости с JPEG
+                            if image.mode in ('RGBA', 'LA', 'P'):
+                                from image_processor import ImageProcessor
+                                processor = ImageProcessor()
+                                image = processor.convert_to_rgb(image)
+                                # Обновляем image_data
+                                img_byte_arr = io.BytesIO()
+                                image.save(img_byte_arr, format='JPEG', quality=95)
+                                image_data = img_byte_arr.getvalue()
                             
                             # Увеличенное превью результата для лучшего просмотра
-                            st.image(preview_image, use_container_width=True)
+                            st.image(image, use_container_width=True)
                             
                             # Кнопки управления
                             col1, col2 = st.columns(2)
                             
                             with col1:
-                                # Кнопка скачивания (используем стандартизированные данные)
+                                # Кнопка скачивания
                                 st.download_button(
                                     label="Скачать",
-                                    data=standardized_data,
+                                    data=image_data,
                                     file_name=f"ai_mockup_{i+1}.jpg",
                                     mime="image/jpeg",
                                     key=f"download_ai_{i+1}",
@@ -941,26 +942,28 @@ def update_mockup_display(mockup_index: int, new_mockup: dict, result: dict, con
                 
                 # image_data уже является bytes от Gemini
                 image_data = new_mockup["image_data"]
+                image = Image.open(io.BytesIO(image_data))
                 
-                # Стандартизируем размер изображения
-                processor = ImageProcessor()
-                standardized_data = processor.standardize_mockup_size(image_data)
-                
-                # Создаем превью для отображения
-                preview_data = processor.create_preview_image(standardized_data)
-                preview_image = Image.open(io.BytesIO(preview_data))
+                # Конвертируем в RGB для совместимости с JPEG
+                if image.mode in ('RGBA', 'LA', 'P'):
+                    processor = ImageProcessor()
+                    image = processor.convert_to_rgb(image)
+                    # Обновляем image_data
+                    img_byte_arr = io.BytesIO()
+                    image.save(img_byte_arr, format='JPEG', quality=95)
+                    image_data = img_byte_arr.getvalue()
                 
                 # Увеличенное превью результата для лучшего просмотра
-                st.image(preview_image, caption=f"AI-мокап {mockup_index+1}", use_container_width=True)
+                st.image(image, caption=f"AI-мокап {mockup_index+1}", use_container_width=True)
                 
                 # Кнопки управления
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    # Кнопка скачивания (используем стандартизированные данные)
+                    # Кнопка скачивания
                     st.download_button(
                         label=f"📥 Скачать AI-мокап {mockup_index+1}",
-                        data=standardized_data,
+                        data=image_data,
                         file_name=f"ai_mockup_{mockup_index+1}.jpg",
                         mime="image/jpeg",
                         key=f"download_ai_{mockup_index+1}_new",
@@ -1628,6 +1631,7 @@ def generate_creative_concepts(brandbook_files):
             
             Создай реалистичный мокап товара с этой концепцией.
             Интегрируй логотип в дизайн согласно концепции.
+            Сгенерируй изображение в разрешении 1024x1024 пикселей (квадратный формат).
             {custom_prompt}
             """
             
@@ -2322,25 +2326,27 @@ def display_batch_results(batch_result: dict):
                                 from image_processor import ImageProcessor
                                 
                                 image_data = result["mockup"]["image_data"]
+                                image = Image.open(io.BytesIO(image_data))
                                 
-                                # Стандартизируем размер изображения
-                                processor = ImageProcessor()
-                                standardized_data = processor.standardize_mockup_size(image_data)
+                                # Конвертируем в RGB для совместимости с JPEG
+                                if image.mode in ('RGBA', 'LA', 'P'):
+                                    processor = ImageProcessor()
+                                    image = processor.convert_to_rgb(image)
+                                    # Обновляем image_data
+                                    img_byte_arr = io.BytesIO()
+                                    image.save(img_byte_arr, format='JPEG', quality=95)
+                                    image_data = img_byte_arr.getvalue()
                                 
-                                # Создаем превью для отображения
-                                preview_data = processor.create_preview_image(standardized_data)
-                                preview_image = Image.open(io.BytesIO(preview_data))
-                                
-                                st.image(preview_image, use_container_width=True)
+                                st.image(image, use_container_width=True)
                                 
                                 # Кнопки управления
                                 col_download, col_regenerate = st.columns(2)
                                 
                                 with col_download:
-                                    # Кнопка скачивания (используем стандартизированные данные)
+                                    # Кнопка скачивания
                                     st.download_button(
                                         label=f"📥 Скачать",
-                                        data=standardized_data,
+                                        data=image_data,
                                         file_name=f"collection_item_{result['index'] + 1}.jpg",
                                         mime="image/jpeg",
                                         key=f"download_batch_{result['index']}",
@@ -2351,7 +2357,7 @@ def display_batch_results(batch_result: dict):
                                     try:
                                         from services.upload_services import upload_to_ftp
                                         upload_to_ftp(
-                                            image_data=standardized_data,
+                                            image_data=image_data,
                                             metadata={
                                                 'product_name': product_name,
                                                 'generation_type': 'batch',

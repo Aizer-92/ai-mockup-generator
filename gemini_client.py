@@ -221,6 +221,7 @@ FINAL REQUIREMENTS:
 - Professional studio lighting
 - Clean background
 - High quality image
+- Generate image in 1024x1024 pixels resolution (square format)
 
 Generate the mockup image."""
         
