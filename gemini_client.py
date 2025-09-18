@@ -191,6 +191,8 @@ You must keep the EXACT SAME PRODUCT from the uploaded image. If it's a phone st
 
 TASK: Add logo to the existing product WITHOUT changing what the product is.
 
+🚨 IMAGE SIZE REQUIREMENT: Generate image in EXACTLY 1024x1024 pixels (SQUARE format) 🚨
+
 PRODUCT PRESERVATION (MOST IMPORTANT):
 - Keep the EXACT product type from the uploaded image
 - Keep the same design, shape, and features
@@ -221,7 +223,12 @@ FINAL REQUIREMENTS:
 - Professional studio lighting
 - Clean background
 - High quality image
-- Generate image in 1024x1024 pixels resolution (square format)
+
+🚨 CRITICAL: IMAGE SIZE REQUIREMENT 🚨
+- Generate image in EXACTLY 1024x1024 pixels resolution
+- Image must be SQUARE format (1:1 aspect ratio)
+- Do NOT generate horizontal or vertical images
+- The final image must be perfectly square
 
 Generate the mockup image."""
         
