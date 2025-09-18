@@ -221,6 +221,7 @@ FINAL REQUIREMENTS:
 - Professional studio lighting
 - Clean background
 - High quality image
+- Generate a SQUARE image with 1:1 aspect ratio
 
 Generate the mockup image."""
         
@@ -252,55 +253,18 @@ Generate the mockup image."""
             if processed_pattern:
                 contents.append(processed_pattern)
             
-            # Пробуем добавить generation_config для контроля размера изображения
-            # Сначала пробуем только документированные параметры
-            try:
-                generation_config = {
-                    "candidate_count": 1,
-                    "max_output_tokens": 8192,
-                    "temperature": 0.7,
-                }
-                
-                # Если экспериментальные параметры не работают, будем использовать только стандартные
-                print("Пробуем generation_config с экспериментальными параметрами для размера изображения")
-                experimental_config = generation_config.copy()
-                experimental_config.update({
-                    "image_resolution": "1024x1024",
-                    "aspect_ratio": "1:1", 
-                    "image_size": "1024x1024",
-                    "output_format": "square",
-                    "image_dimensions": {"width": 1024, "height": 1024},
-                    "square_format": True
-                })
-                generation_config = experimental_config
-            except Exception as e:
-                print(f"Ошибка с экспериментальными параметрами: {e}")
-                generation_config = {
-                    "candidate_count": 1,
-                    "max_output_tokens": 8192,
-                    "temperature": 0.7,
-                }
+            # Используем только стандартные параметры generation_config
+            generation_config = {
+                "candidate_count": 1,
+                "max_output_tokens": 8192,
+                "temperature": 0.7,
+            }
             
-            # Пробуем с экспериментальными параметрами, если не получается - используем стандартные
-            try:
-                response = self.client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=contents,
-                    generation_config=generation_config,
-                )
-            except Exception as e:
-                print(f"Ошибка с generation_config: {e}")
-                print("Пробуем только с базовыми параметрами...")
-                basic_config = {
-                    "candidate_count": 1,
-                    "max_output_tokens": 8192,
-                    "temperature": 0.7,
-                }
-                response = self.client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=contents,
-                    generation_config=basic_config,
-                )
+            response = self.client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=contents,
+                generation_config=generation_config,
+            )
             
             # Обработка ответа
             mockups = []
