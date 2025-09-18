@@ -725,12 +725,29 @@ def display_mockups_dynamically(mockups: dict, result: dict):
                             
                             # image_data уже является bytes от Gemini
                             image_data = mockup["image_data"]
-                            image = Image.open(io.BytesIO(image_data))
+                            
+                            # Стандартизируем размер изображения, если оно не квадратное
+                            from image_processor import ImageProcessor
+                            processor = ImageProcessor()
+                            
+                            # Проверяем размер изображения
+                            temp_image = Image.open(io.BytesIO(image_data))
+                            width, height = temp_image.size
+                            
+                            print(f"Размер полученного изображения: {width}x{height}")
+                            
+                            # Если изображение не квадратное, стандартизируем его
+                            if width != height or width != 1024:
+                                print(f"Стандартизируем размер с {width}x{height} до 1024x1024")
+                                standardized_data = processor.standardize_mockup_size(image_data)
+                                image_data = standardized_data
+                                image = Image.open(io.BytesIO(image_data))
+                            else:
+                                print("Изображение уже имеет правильный размер 1024x1024")
+                                image = temp_image
                             
                             # Конвертируем в RGB для совместимости с JPEG
                             if image.mode in ('RGBA', 'LA', 'P'):
-                                from image_processor import ImageProcessor
-                                processor = ImageProcessor()
                                 image = processor.convert_to_rgb(image)
                                 # Обновляем image_data
                                 img_byte_arr = io.BytesIO()
