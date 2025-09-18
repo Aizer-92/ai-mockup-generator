@@ -9,7 +9,7 @@ from PIL import Image, ImageOps, ImageFilter, ImageDraw
 import cv2
 import numpy as np
 from typing import Tuple, Optional, List
-from config import MAX_IMAGE_SIZE, LOGO_MAX_SIZE, UPLOAD_DIR
+from config import MAX_IMAGE_SIZE, LOGO_MAX_SIZE, UPLOAD_DIR, STANDARD_MOCKUP_SIZE, STANDARD_PREVIEW_SIZE
 
 class ImageProcessor:
     def __init__(self):
@@ -422,3 +422,88 @@ class ImageProcessor:
         except Exception as e:
             print(f"❌ Критическая ошибка при обработке PDF: {e}")
             return pdf_data
+    
+    def standardize_mockup_size(self, image_data: bytes, target_size: Tuple[int, int] = STANDARD_MOCKUP_SIZE) -> bytes:
+        """
+        Стандартизирует размер изображения мокапа
+        
+        Args:
+            image_data: Данные изображения в байтах
+            target_size: Целевой размер (ширина, высота)
+            
+        Returns:
+            bytes: Стандартизированные данные изображения
+        """
+        try:
+            # Открываем изображение
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Конвертируем в RGB если нужно
+            if image.mode != 'RGB':
+                image = self.convert_to_rgb(image)
+            
+            # Создаем новое изображение с целевым размером и белым фоном
+            new_image = Image.new('RGB', target_size, (255, 255, 255))
+            
+            # Вычисляем размеры для центрирования с сохранением пропорций
+            img_ratio = image.width / image.height
+            target_ratio = target_size[0] / target_size[1]
+            
+            if img_ratio > target_ratio:
+                # Изображение шире - подгоняем по ширине
+                new_width = target_size[0]
+                new_height = int(target_size[0] / img_ratio)
+            else:
+                # Изображение выше - подгоняем по высоте
+                new_height = target_size[1]
+                new_width = int(target_size[1] * img_ratio)
+            
+            # Изменяем размер изображения
+            resized_image = image.resize((new_width, new_height), Image.LANCZOS)
+            
+            # Центрируем изображение на белом фоне
+            x = (target_size[0] - new_width) // 2
+            y = (target_size[1] - new_height) // 2
+            new_image.paste(resized_image, (x, y))
+            
+            # Сохраняем в байты
+            buffer = io.BytesIO()
+            new_image.save(buffer, format='JPEG', quality=95, optimize=True)
+            
+            return buffer.getvalue()
+            
+        except Exception as e:
+            print(f"❌ Ошибка стандартизации размера: {e}")
+            return image_data
+    
+    def create_preview_image(self, image_data: bytes, preview_size: Tuple[int, int] = STANDARD_PREVIEW_SIZE) -> bytes:
+        """
+        Создает превью изображения для отображения в интерфейсе
+        
+        Args:
+            image_data: Данные изображения в байтах
+            preview_size: Размер превью (ширина, высота)
+            
+        Returns:
+            bytes: Данные превью изображения
+        """
+        try:
+            # Открываем изображение
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Конвертируем в RGB если нужно
+            if image.mode != 'RGB':
+                image = self.convert_to_rgb(image)
+            
+            # Изменяем размер с сохранением пропорций
+            image.thumbnail(preview_size, Image.LANCZOS)
+            
+            # Сохраняем в байты
+            buffer = io.BytesIO()
+            image.save(buffer, format='JPEG', quality=90, optimize=True)
+            
+            return buffer.getvalue()
+            
+        except Exception as e:
+            print(f"❌ Ошибка создания превью: {e}")
+            return image_data
