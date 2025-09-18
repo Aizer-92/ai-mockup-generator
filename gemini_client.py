@@ -191,8 +191,6 @@ You must keep the EXACT SAME PRODUCT from the uploaded image. If it's a phone st
 
 TASK: Add logo to the existing product WITHOUT changing what the product is.
 
-🚨 IMAGE SIZE REQUIREMENT: Generate image in EXACTLY 1024x1024 pixels (SQUARE format) 🚨
-
 PRODUCT PRESERVATION (MOST IMPORTANT):
 - Keep the EXACT product type from the uploaded image
 - Keep the same design, shape, and features
@@ -224,12 +222,6 @@ FINAL REQUIREMENTS:
 - Clean background
 - High quality image
 
-🚨 CRITICAL: IMAGE SIZE REQUIREMENT 🚨
-- Generate image in EXACTLY 1024x1024 pixels resolution
-- Image must be SQUARE format (1:1 aspect ratio)
-- Do NOT generate horizontal or vertical images
-- The final image must be perfectly square
-
 Generate the mockup image."""
         
         # Отладочная информация
@@ -260,9 +252,25 @@ Generate the mockup image."""
             if processed_pattern:
                 contents.append(processed_pattern)
             
+            # Пробуем добавить generation_config для контроля размера изображения
+            # Экспериментальные параметры для размера изображения
+            generation_config = {
+                "candidate_count": 1,
+                "max_output_tokens": 8192,
+                "temperature": 0.7,
+                # Пробуем различные варианты параметров для размера изображения
+                "image_resolution": "1024x1024",
+                "aspect_ratio": "1:1", 
+                "image_size": "1024x1024",
+                "output_format": "square",
+                "image_dimensions": {"width": 1024, "height": 1024},
+                "square_format": True
+            }
+            
             response = self.client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=contents,
+                generation_config=generation_config,
             )
             
             # Обработка ответа
