@@ -1091,8 +1091,12 @@ def creative_generation_interface():
         if not brandbook_files:
             st.info("ℹ️ Брендбук не загружен - ищем информацию о бренде в интернете на основе логотипа...")
         
-        # Генерируем концепции
-        generate_creative_concepts(brandbook_files)
+        # Генерируем концепции (используем оптимизированную версию если включена)
+        from config import UNIFIED_ANALYSIS_ENABLED
+        if UNIFIED_ANALYSIS_ENABLED:
+            generate_creative_concepts_optimized(brandbook_files)
+        else:
+            generate_creative_concepts(brandbook_files)
 
 def search_brand_info_online(logo_image):
     """Ищет информацию о бренде в интернете на основе логотипа"""
@@ -1142,8 +1146,159 @@ def search_brand_info_online(logo_image):
         print(f"Ошибка поиска информации о бренде: {e}")
         return None
 
+def generate_creative_concepts_optimized(brandbook_files):
+    """Оптимизированная версия генерации креативных концепций (объединенный анализ)"""
+    
+    # Получаем данные из session_state
+    product_images = st.session_state.creative_product_images
+    logo_image = st.session_state.creative_logo_image
+    custom_prompt = st.session_state.get('creative_custom_prompt', '')
+    
+    # Ищем информацию о бренде, если брендбук не загружен
+    brand_analysis = None
+    if not brandbook_files:
+        st.info("🔍 Анализируем логотип для поиска информации о бренде...")
+        brand_analysis = search_brand_info_online(logo_image)
+        if brand_analysis:
+            st.success("✅ Информация о бренде найдена")
+            with st.expander("🎨 Анализ бренда", expanded=False):
+                st.write(brand_analysis)
+    
+    st.info("Анализируем товар, бренд и создаем концепции в одном запросе...")
+    
+    try:
+        # Создаем объединенный промпт для всего анализа
+        unified_prompt = f"""
+        Ты - эксперт по мерчендайзингу и дизайну товаров. Выполни полный анализ и создай 5 уникальных концепций для товара.
+        
+        {f"АНАЛИЗ БРЕНДА (найден в интернете):\n{brand_analysis}\n" if brand_analysis else ""}
+        
+        ЗАДАЧИ:
+        1. Проанализируй товар: тип, материал, цвет, размер, целевую аудиторию
+        2. Изучи современные тренды в мерчендайзинге 2024-2025 для этого типа товара
+        3. {f"Используй информацию о бренде выше" if brand_analysis else "Проанализируй логотип и определи стиль бренда"}
+        4. {f"Если предоставлен брендбук - изучи его и выдели основные элементы бренда" if brandbook_files else ""}
+        5. Создай 5 уникальных концепций товара
+        
+        ТРЕБОВАНИЯ К КОНЦЕПЦИЯМ:
+        - Реалистичные и не требующие сложного исполнения
+        - Современные, актуальные и дизайнерские
+        - Интегрируют логотип креативно
+        - Не изменяют сам товар, только добавляют элементы дизайна
+        - Каждая концепция уникальна
+        - Яркие, цепляющие и продающие
+        - Учитывают тренды для данного типа товара
+        
+        {f"ДОПОЛНИТЕЛЬНЫЕ ТРЕБОВАНИЯ: {custom_prompt}" if custom_prompt else ""}
+        
+        Верни 5 промптов для создания концепций, каждый на отдельной строке, начинающейся с номера (1., 2., 3., 4., 5.)
+        Каждый промпт должен быть детальным и включать конкретные элементы дизайна, цвета, расположение, стиль.
+        """
+        
+        # Подготавливаем все файлы для анализа
+        files_to_analyze = []
+        
+        # Добавляем все изображения товара
+        for i, product_image in enumerate(product_images):
+            import io
+            buffer = io.BytesIO()
+            product_image.save(buffer, format='JPEG', quality=60)
+            files_to_analyze.append({
+                'data': buffer.getvalue(),
+                'mime_type': 'image/jpeg',
+                'name': f'product_angle_{i+1}.jpg'
+            })
+        
+        # Добавляем логотип
+        logo_buffer = io.BytesIO()
+        logo_image.save(logo_buffer, format='JPEG', quality=60)
+        files_to_analyze.append({
+            'data': logo_buffer.getvalue(),
+            'mime_type': 'image/jpeg',
+            'name': 'logo.jpg'
+        })
+        
+        # Добавляем брендбук (если есть)
+        for i, brandbook_file in enumerate(brandbook_files):
+            files_to_analyze.append({
+                'data': brandbook_file.getvalue(),
+                'mime_type': brandbook_file.type,
+                'name': f'brandbook_{i}.pdf' if brandbook_file.type == 'application/pdf' else f'brandbook_{i}.jpg'
+            })
+        
+        # Отправляем объединенный запрос
+        from gemini_client import GeminiClient
+        gemini_client = GeminiClient()
+        
+        concepts_response = gemini_client.generate_with_files(unified_prompt, files_to_analyze)
+        
+        if not concepts_response or not concepts_response.strip():
+            st.error("❌ Не удалось получить концепции от анализатора")
+            return
+        
+        # Парсим концепции
+        concepts = []
+        lines = concepts_response.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and (line.startswith('1.') or line.startswith('2.') or line.startswith('3.') or 
+                        line.startswith('4.') or line.startswith('5.')):
+                # Убираем номер
+                concept = line.split('.', 1)[1].strip()
+                concepts.append(concept)
+        
+        if len(concepts) < 5:
+            st.warning(f"⚠️ Получено только {len(concepts)} концепций вместо 5")
+        
+        # Генерируем мокапы для каждой концепции
+        st.info(f"Создаем {len(concepts)} концепций...")
+        
+        generated_concepts = []
+        for i, concept in enumerate(concepts):
+            st.write(f"🎨 Концепция {i+1}: {concept}")
+            
+            # Используем первое изображение товара для генерации мокапа
+            main_product_image = product_images[0]
+            
+            # Генерируем мокап
+            from mockup_generator import get_mockup_generator
+            generator = get_mockup_generator()
+            
+            result = generator.generate_mockups(
+                product_image=main_product_image,
+                logo_image=logo_image,
+                style="modern",
+                logo_application="embroidery",
+                custom_prompt=concept,
+                product_color="как на фото",
+                product_angle="как на фото",
+                logo_position="центр",
+                logo_size="средний",
+                logo_color="как на фото"
+            )
+            
+            if result["status"] == "success" and result["mockups"]["gemini_mockups"]:
+                mockup = result["mockups"]["gemini_mockups"][0]
+                generated_concepts.append({
+                    "index": i + 1,
+                    "concept": concept,
+                    "mockup": mockup
+                })
+            else:
+                st.error(f"❌ Ошибка генерации концепции {i+1}")
+        
+        # Сохраняем результаты
+        st.session_state.creative_generated_concepts = generated_concepts
+        st.success(f"✅ Создано {len(generated_concepts)} концепций!")
+        
+    except Exception as e:
+        st.error(f"❌ Ошибка оптимизированной генерации концепций: {e}")
+        st.info("🔄 Переключаемся на стандартный режим...")
+        # Fallback на стандартную версию
+        generate_creative_concepts(brandbook_files)
+
 def generate_creative_concepts(brandbook_files):
-    """Генерирует 5 креативных концепций товара"""
+    """Генерирует 5 креативных концепций товара (стандартная версия)"""
     
     # Получаем данные из session_state
     product_images = st.session_state.creative_product_images

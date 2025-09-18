@@ -10,7 +10,7 @@ from PIL import Image
 import json
 import time
 from typing import List, Dict, Optional
-from config import get_config, GEMINI_MODEL, GEMINI_ANALYSIS_MODEL, MAX_IMAGE_SIZE, COMPRESSION_QUALITY
+from config import get_config, GEMINI_MODEL, GEMINI_ANALYSIS_MODEL, MAX_IMAGE_SIZE, COMPRESSION_QUALITY, PDF_COMPRESSION_ENABLED
 
 class GeminiClient:
     def __init__(self):
@@ -348,13 +348,21 @@ Generate the mockup image."""
                         }
                     })
                 elif file_info['mime_type'] == 'application/pdf':
-                    # Для PDF файлов
+                    # Для PDF файлов - сжимаем перед отправкой
                     if hasattr(file_info['data'], 'read'):
                         pdf_data = file_info['data'].read()
                     else:
                         pdf_data = file_info['data']
                     
-                    pdf_b64 = base64.b64encode(pdf_data).decode('utf-8')
+                    # Сжимаем PDF для экономии токенов (если включено)
+                    if PDF_COMPRESSION_ENABLED:
+                        from image_processor import ImageProcessor
+                        processor = ImageProcessor()
+                        compressed_pdf_data = processor.compress_pdf_for_api(pdf_data, max_size_mb=2.0)
+                    else:
+                        compressed_pdf_data = pdf_data
+                    
+                    pdf_b64 = base64.b64encode(compressed_pdf_data).decode('utf-8')
                     contents.append({
                         "inline_data": {
                             "mime_type": file_info['mime_type'],

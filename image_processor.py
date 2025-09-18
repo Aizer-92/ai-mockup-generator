@@ -354,3 +354,71 @@ class ImageProcessor:
             return f"{size_bytes / 1024:.1f} KB"
         else:
             return f"{size_bytes / (1024 * 1024):.1f} MB"
+    
+    def compress_pdf_for_api(self, pdf_data: bytes, max_size_mb: float = 2.0) -> bytes:
+        """
+        Сжимает PDF файл для отправки в API
+        
+        Args:
+            pdf_data: Исходные данные PDF
+            max_size_mb: Максимальный размер в МБ
+            
+        Returns:
+            bytes: Сжатые данные PDF или исходные данные если сжатие не нужно
+        """
+        try:
+            # Проверяем размер исходного файла
+            original_size_mb = len(pdf_data) / (1024 * 1024)
+            
+            if original_size_mb <= max_size_mb:
+                # Файл уже достаточно мал
+                return pdf_data
+            
+            # Пытаемся сжать PDF
+            try:
+                import fitz  # PyMuPDF
+                
+                # Открываем PDF
+                doc = fitz.open(stream=pdf_data, filetype="pdf")
+                
+                # Создаем новый документ с оптимизированными настройками
+                new_doc = fitz.open()
+                
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    
+                    # Получаем изображение страницы с пониженным разрешением
+                    mat = fitz.Matrix(0.7, 0.7)  # Уменьшаем разрешение на 30%
+                    pix = page.get_pixmap(matrix=mat)
+                    
+                    # Создаем новую страницу
+                    new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+                    
+                    # Вставляем изображение страницы
+                    new_page.insert_image(page.rect, pixmap=pix)
+                
+                # Сохраняем сжатый PDF
+                compressed_data = new_doc.tobytes()
+                new_doc.close()
+                doc.close()
+                
+                # Проверяем результат сжатия
+                compressed_size_mb = len(compressed_data) / (1024 * 1024)
+                
+                if compressed_size_mb < original_size_mb and compressed_size_mb <= max_size_mb:
+                    print(f"✅ PDF сжат: {original_size_mb:.2f} MB → {compressed_size_mb:.2f} MB")
+                    return compressed_data
+                else:
+                    print(f"⚠️ Сжатие PDF неэффективно, используем исходный файл")
+                    return pdf_data
+                    
+            except ImportError:
+                print("⚠️ PyMuPDF не установлен, сжатие PDF недоступно")
+                return pdf_data
+            except Exception as e:
+                print(f"⚠️ Ошибка сжатия PDF: {e}")
+                return pdf_data
+                
+        except Exception as e:
+            print(f"❌ Критическая ошибка при обработке PDF: {e}")
+            return pdf_data
